@@ -1,0 +1,37 @@
+{
+  "name": "Artifact Hub",
+  "short_name": "ArtifactHub",
+  "description": "A hub for all your artifacts.",
+  "icons": [
+    {
+      "src": "/web-app-manifest-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/desktop.png",
+      "sizes": "1257x769",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "634x614",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "theme_color": "#fdfeba",
+  "background_color": "#fdfeba",
+  "display": "standalone",
+  "start_url": "/"
+}
