@@ -5,28 +5,35 @@ import { PGlite } from '@electric-sql/pglite';
 import { PGliteProvider } from '@electric-sql/pglite-react';
 import { live, PGliteWithLive } from '@electric-sql/pglite/live';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { checkExistingBackup } from '../lib/db';
 
-const DatabaseContext = createContext<PGliteWithLive | null>(null);
+export type DatabaseGateway = {
+  db: PGliteWithLive | null;
+};
+
+const DatabaseContext = createContext<DatabaseGateway>({
+  db: null,
+});
 
 /**
  * Custom hook to access the client database instance.
  * @returns The client database instance.
  */
-export function useDatabase(): PGliteWithLive {
-  const db = useContext(DatabaseContext);
+export function useGateway(): DatabaseGateway {
+  const gateway = useContext(DatabaseContext);
 
-  if (!db) {
+  if (!gateway) {
     throw new Error('useDatabase must be used within ClientDatabaseGateway');
   }
 
-  return db;
+  return gateway;
 }
 
 /**
  * Client-side database gateway component that initializes/restores the 
  * client database instance to its children.
  */
-export default function ClientDatabaseGateway({ children }: { children: React.ReactNode }) {  
+export default function ClientDatabaseGateway({ children, backupFile }: { children: React.ReactNode; backupFile?: File }) {  
   const [db, setDb] = useState<PGliteWithLive | null>(null);
 
   useEffect(() => {
@@ -34,9 +41,16 @@ export default function ClientDatabaseGateway({ children }: { children: React.Re
     let instance: PGliteWithLive | null = null;
 
     async function initClientDb() {
-      const created = await PGlite.create({
+      const existing = await checkExistingBackup();
+      const pgLiteProps = existing ? {
+        loadDataDir: backupFile,
+      } : {
         dataDir: "idb://artifact-hub-db",
-        extensions: { live }
+      };
+
+      const created = await PGlite.create({
+        ...pgLiteProps,
+        extensions: { live },
       });
 
       if (cancelled) {
@@ -75,7 +89,7 @@ export default function ClientDatabaseGateway({ children }: { children: React.Re
       setDb(instance);
     }
 
-    initClientDb().catch(console.error);
+    initClientDb().catch((e) => console.log(e));
 
     return () => {
       cancelled = true;
@@ -93,7 +107,7 @@ export default function ClientDatabaseGateway({ children }: { children: React.Re
   }
 
   return (
-    <DatabaseContext.Provider value={db}>
+    <DatabaseContext.Provider value={{ db }}>
       <PGliteProvider db={db}>{children}</PGliteProvider>
     </DatabaseContext.Provider>
   );

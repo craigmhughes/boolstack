@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect } from "react";
-import { useDatabase } from "./ClientDatabaseGateway";
+import { useContext, useEffect } from "react";
+import { useGateway } from "./ClientDatabaseGateway";
 import { useLiveQuery } from "@electric-sql/pglite-react";
 import { Artifact } from "../lib/types";
+import { Button } from "@/components/ui/button";
+import { ArtifactViewContext } from "./ArtifactView";
+import { backup } from "../lib/db";
 
 /**
  * List view for all stored artifacts.
@@ -11,10 +14,14 @@ import { Artifact } from "../lib/types";
  * @returns A React component displaying the list of artifacts.
  */
 export function ArtifactList() {
-  const db = useDatabase();
+  const { db } = useGateway();
+  const { setActiveArtifact } = useContext(ArtifactViewContext);
 
   // Get DB Size
   useEffect(() => {
+    if (!db) {
+      return;
+    }
     db.query<{ bytes: number }>(`
       SELECT pg_database_size(current_database()) AS bytes
     `).then(({ rows }) => {
@@ -32,18 +39,45 @@ export function ArtifactList() {
   `);
 
   useEffect(() => {
-    console.log(result);
+    // console.log(result);
   }, [result]);
 
   if (!result) {
     return <div>Loading...</div>;
   }
 
+  const deleteArtifact = (namespace: string) => {
+    if (!db) {
+      return;
+    }
+    db.query(`
+      DELETE FROM artifacts 
+      WHERE namespace = $1
+    `, [namespace]).then(() => {
+      backup(db);
+    });
+  };
+
   return (
     <div>
       {result.rows.map((artifact) => (
         <div key={artifact.namespace}>
-          {artifact.icon} {artifact.namespace}
+          <p>{artifact.icon} {artifact.namespace}</p>
+          <Button
+            type="button"
+            onClick={() => setActiveArtifact(artifact)}
+          >
+            View Artifact
+          </Button>
+          <Button
+            type="button"
+            onClick={async () => {
+              const shouldDelete = await confirm(`Are you sure you want to delete artifact: ${artifact.namespace}?`);
+              shouldDelete && deleteArtifact(artifact.namespace);
+            }}
+          >
+            Delete Artifact
+          </Button>
         </div>
       ))}
     </div>

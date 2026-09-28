@@ -1,8 +1,9 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { IconDownload, IconShieldCancel, IconShieldCheck, IconSquareRounded, IconX } from "@tabler/icons-react";
+import { IconDownload, IconShieldCancel, IconSquareRounded, IconX } from "@tabler/icons-react";
 import { cx } from "class-variance-authority";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
+import { set, get } from "idb-keyval";
 
 async function requestPersistentStorage(
   setStoragePersisted: Dispatch<SetStateAction<boolean | null>>,
@@ -13,14 +14,28 @@ async function requestPersistentStorage(
   }
 
   const alreadyPersisted = await navigator.storage.persisted();
+  const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
 
-  if (alreadyPersisted) {
+  if (alreadyPersisted && backupSource) {
     setStoragePersisted(true);
     return;
   }
 
   const granted = await navigator.storage.persist();
-  setStoragePersisted(granted);
+  if (backupSource) setStoragePersisted(granted);
+}
+
+async function selectBackupSource(setStoragePersisted: Dispatch<SetStateAction<boolean | null>>) {
+  try {
+    const directoryHandle = await window.showDirectoryPicker();
+
+    set('backupSource', directoryHandle);
+
+    console.log('File saved successfully inside the directory!');
+    requestPersistentStorage(setStoragePersisted);
+  } catch (error) {
+    // console.error('Error selecting backup source:', error);
+  }
 }
 
 export function StoragePersistence() {
@@ -37,16 +52,30 @@ export function StoragePersistence() {
   };
 
   useEffect(() => {
+    let mounted = true;
+
+    const safeSetStoragePersisted: typeof setStoragePersisted = (value) => {
+      if (mounted) setStoragePersisted(value);
+    };
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(function (registration) {
-        console.log('Service Worker registered with scope:', registration.scope);
+        if (mounted) {
+          console.log('Service Worker registered with scope:', registration.scope);
+        }
       }).catch(function (error) {
-        console.log('Service Worker registration failed:', error);
+        if (mounted) {
+          console.log('Service Worker registration failed:', error);
+        }
       });
     }
 
-    requestPersistentStorage(setStoragePersisted);
-  }, [setStoragePersisted]);
+    requestPersistentStorage(safeSetStoragePersisted);
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -58,7 +87,7 @@ export function StoragePersistence() {
     return () => {
       controller.abort();
     };
-  }, [setInstallPromptEvent]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -78,16 +107,7 @@ export function StoragePersistence() {
   }, []);
 
   if (storagePersisted) {
-    return (
-      <Button
-        size="icon"
-        className="absolute bottom-0 right-0 m-4 p-6 hover:bg-green-950 cursor-pointer hover:bottom-1"
-      >
-        <div className="relative scale-200 flex items-center justify-center">
-            <IconShieldCheck size={32} strokeWidth={1} className="absolute stroke-green-400" />
-          </div>
-      </Button>
-    )
+    return null;
   }
 
   if (minimized) {
@@ -104,12 +124,12 @@ export function StoragePersistence() {
     )
   }
 
-  if (storagePersisted === false && !minimized) {
+  if (!storagePersisted && !minimized) {
     return (
       <div className={
         cx(
           "p-4 bg-slate-950 text-slate-100 w-full text-center flex items-center",
-          "justify-center gap-8 absolute bottom-0 transition-all",
+          "justify-center gap-8 absolute bottom-0 transition-all left-0",
         )
       }>
         <div className="flex items-center gap-4 select-none">
@@ -120,12 +140,12 @@ export function StoragePersistence() {
           <span className="flex flex-col items-start">
             <span className="text-xs text-yellow-400 font-semibold">Storage persistence is not granted!</span>
             <span>
-              Your data may be cleared by the browser. Please install the app to ensure your data is safe.
+              Your data may be cleared by the browser. Please <span tabIndex={0} className="underline" onClick={() => selectBackupSource(setStoragePersisted)}>select a backup file</span> to ensure your data is safe.
             </span>
           </span>
         </div>
         {installPromptEvent && (
-          <Button 
+          <Button
             className={
               cx(
                 "flex items-center gap-2 h-max p-2 px-3",
@@ -140,7 +160,7 @@ export function StoragePersistence() {
           </Button>
         )}
 
-        <Button 
+        <Button
           className="bg-transparent hover:bg-slate-800 cursor-pointer"
           onClick={() => setMinimized(true)}
         >

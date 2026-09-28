@@ -12,16 +12,21 @@ import {
   FieldSet,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { useDatabase } from "./ClientDatabaseGateway"
+import { useGateway } from "./ClientDatabaseGateway"
+import { backup } from "../lib/db"
 
 const emojis = ["🚀", "💡", "🎨", "🧰", "📦", "🧪", "🎵", "🌱", "⭐", "🔥"]
 
 export function ArtifactEdit() {
   const [selectedEmoji, setSelectedEmoji] = useState(emojis[0])
-  const db = useDatabase()
+  const { db } = useGateway()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!db) {
+      console.error("Database is not initialized")
+      return
+    }
 
     const formData = new FormData(event.currentTarget)
     const file = formData.get("file")
@@ -32,7 +37,9 @@ export function ArtifactEdit() {
       [formData.get("name"), htmlContent, selectedEmoji],
     ).catch((error) => {
       console.error("Error saving artifact:", error)
-    })
+    }).finally(() => {
+      backup(db);
+    });
   }
 
   return (
