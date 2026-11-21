@@ -34,7 +34,15 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { BrandTag } from "./brand"
-import { IconAlertHexagon, IconDeviceFloppy, IconPlus } from "@tabler/icons-react"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { AppIcon, appIconVariantNames } from "./app-icon"
+import {
+  IconAlertHexagon,
+  IconDeviceDesktop,
+  IconDeviceFloppy,
+  IconDeviceMobile,
+  IconPlus,
+} from "@tabler/icons-react"
 
 const PRESET_COLORS = [
   "#ff5003",
@@ -46,6 +54,15 @@ const PRESET_COLORS = [
   "#004b2c",
   "#171717",
 ]
+
+function PlaceholderTile() {
+  return (
+    <div className="flex flex-col items-center gap-1.5" aria-hidden>
+      <div className="size-[60px] rounded-[28%] bg-slate-800" />
+      <div className="h-1.5 w-9 rounded-full bg-slate-800" />
+    </div>
+  )
+}
 
 /**
  * Create/edit form for an app. State is initialised from `artifact` once, so the
@@ -60,6 +77,8 @@ export function ArtifactEdit(
   const [description, setDescription] = useState(artifact?.description ?? "")
   const [selectedIcon, setSelectedIcon] = useState(artifact?.icon || "IconRocket")
   const [selectedVariant, setSelectedVariant] = useState(String(artifact?.variant ?? 1))
+  const [mobileVariant, setMobileVariant] = useState(artifact?.mobile_variant ?? 1)
+  const [previewTab, setPreviewTab] = useState("desktop")
   const [selectedColor, setSelectedColor] = useState(artifact?.color || "#ff5003")
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -93,7 +112,7 @@ export function ArtifactEdit(
       const theme = {
         icon: selectedIcon,
         variant: Number(selectedVariant),
-        mobile_variant: artifact?.mobile_variant ?? 1,
+        mobile_variant: mobileVariant,
         color: selectedColor,
         description: description.trim(),
       }
@@ -132,16 +151,48 @@ export function ArtifactEdit(
       <DialogDescription className="mt-1">
         Store your application artifacts securely.
       </DialogDescription>
-      <div className="mx-auto my-4 w-full max-w-xs">
-        <FeatureCard
-          preview
-          title={name.trim() || "Your app"}
-          description={description}
-          icon={selectedIcon}
-          variant={Number(selectedVariant)}
-          color={selectedColor}
-        />
-      </div>
+      <Tabs value={previewTab} onValueChange={setPreviewTab} className="my-4 items-center">
+        <TabsList>
+          <TabsTrigger value="desktop">
+            <IconDeviceDesktop /> Desktop
+          </TabsTrigger>
+          <TabsTrigger value="mobile">
+            <IconDeviceMobile /> Mobile
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="desktop" className="w-full">
+          <div className="mx-auto w-full max-w-xs">
+            <FeatureCard
+              preview
+              title={name.trim() || "Your app"}
+              description={description}
+              icon={selectedIcon}
+              variant={Number(selectedVariant)}
+              color={selectedColor}
+            />
+          </div>
+        </TabsContent>
+        <TabsContent value="mobile" className="w-full">
+          <div className="mx-auto w-full max-w-[220px] rounded-[28px] border border-slate-700 bg-black p-4 shadow-[0_0_40px_rgba(37,99,235,.25)]">
+            <div className="grid grid-cols-3 gap-x-2 gap-y-4">
+              {[0, 1].map((i) => (
+                <PlaceholderTile key={i} />
+              ))}
+              <AppIcon
+                size="md"
+                showLabel
+                title={name.trim() || "My app"}
+                icon={selectedIcon}
+                color={selectedColor}
+                variant={mobileVariant}
+              />
+              {[2, 3, 4].map((i) => (
+                <PlaceholderTile key={i} />
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
       <form onSubmit={handleSubmit}>
         <FieldGroup>
           <FieldSet>
@@ -197,7 +248,7 @@ export function ArtifactEdit(
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="artifact-edit-variant">Style</FieldLabel>
+                <FieldLabel htmlFor="artifact-edit-variant">Desktop card style</FieldLabel>
                 <Select value={selectedVariant} onValueChange={setSelectedVariant}>
                   <SelectTrigger id="artifact-edit-variant" className="w-full">
                     <SelectValue />
@@ -236,6 +287,46 @@ export function ArtifactEdit(
                     value={selectedColor}
                     onChange={(event) => setSelectedColor(event.target.value)}
                   />
+                </div>
+              </Field>
+              <Field>
+                <FieldLabel id="artifact-edit-mobile-label">Mobile icon style</FieldLabel>
+                <div
+                  role="radiogroup"
+                  aria-labelledby="artifact-edit-mobile-label"
+                  className="grid grid-cols-3 gap-2"
+                >
+                  {appIconVariantNames.map((variantName, index) => {
+                    const n = index + 1
+                    const checked = mobileVariant === n
+                    return (
+                      <button
+                        key={variantName}
+                        type="button"
+                        role="radio"
+                        aria-checked={checked}
+                        onClick={() => {
+                          setMobileVariant(n)
+                          setPreviewTab("mobile")
+                        }}
+                        className={cn(
+                          "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                          checked ? "bg-blue-50 ring-2 ring-blue-500" : "hover:bg-muted",
+                        )}
+                      >
+                        <span className="flex w-full justify-center rounded-lg bg-black p-2">
+                          <AppIcon
+                            size="sm"
+                            variant={n}
+                            icon={selectedIcon}
+                            color={selectedColor}
+                            title={name.trim() || "My app"}
+                          />
+                        </span>
+                        {variantName}
+                      </button>
+                    )
+                  })}
                 </div>
               </Field>
             </FieldGroup>
