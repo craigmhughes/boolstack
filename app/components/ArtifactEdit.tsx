@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import {
   Field,
   FieldDescription,
-  FieldError,
   FieldGroup,
   FieldLabel,
   FieldSet,
@@ -34,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { BrandTag } from "./brand"
+import { IconAlertHexagon, IconDeviceFloppy, IconPlus } from "@tabler/icons-react"
 
 const PRESET_COLORS = [
   "#ff5003",
@@ -107,12 +108,14 @@ export function ArtifactEdit(
     }
   }
 
-  const title = artifact ? `Edit ${artifact.namespace}` : "New app"
+  const title = artifact ? `Edit ${artifact.namespace}` : "Add an app"
 
   return (
-    <div className="flex max-h-[85dvh] w-full flex-col overflow-y-auto p-4">
-      <DialogTitle>{title}</DialogTitle>
-      <DialogDescription>
+    <div className="relative w-full">
+    <BrandTag className="absolute -top-3 left-0 z-10">{isEdit ? "Editing" : "New app"}</BrandTag>
+    <div className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 pt-8">
+      <DialogTitle className="text-xl">{title}</DialogTitle>
+      <DialogDescription className="mt-1">
         Store your application artifacts securely.
       </DialogDescription>
       <div className="mx-auto my-4 w-full max-w-xs">
@@ -208,7 +211,7 @@ export function ArtifactEdit(
                       className={cn(
                         "size-8 rounded-full border border-black/20 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
                         selectedColor.toLowerCase() === preset &&
-                          "ring-2 ring-foreground ring-offset-2 ring-offset-background",
+                          "ring-2 ring-blue-500 ring-offset-2 ring-offset-background",
                       )}
                     />
                   ))}
@@ -223,20 +226,33 @@ export function ArtifactEdit(
               </Field>
             </FieldGroup>
           </FieldSet>
-          {error && <FieldError role="alert">{error}</FieldError>}
-          <Field orientation="horizontal">
-            <Button type="submit" disabled={saving}>
-              {saving && <Spinner />}
-              {isEdit ? "Save" : "Submit"}
+          {error && (
+            <div
+              role="alert"
+              className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-[11px] text-red-400"
+            >
+              <IconAlertHexagon size={16} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <Button
+              type="submit"
+              disabled={saving}
+              className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
+            >
+              {saving ? <Spinner /> : isEdit ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
+              {isEdit ? "Save changes" : "Add app"}
             </Button>
             <DialogClose asChild>
-              <Button variant="outline" type="button">
+              <Button variant="ghost" type="button" className="w-full p-5">
                 Cancel
               </Button>
             </DialogClose>
-          </Field>
+          </div>
         </FieldGroup>
       </form>
+    </div>
     </div>
   )
 }
