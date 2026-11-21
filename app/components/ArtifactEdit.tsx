@@ -21,6 +21,7 @@ import {
   updateArtifact,
 } from "../lib/artifacts"
 import type { Artifact } from "../lib/types"
+import type { ArtifactTemplate } from "../lib/registry-types"
 import { DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { IconPicker } from "./IconPicker"
 import { FileUpload } from "./file-upload"
@@ -41,6 +42,7 @@ import {
   IconDeviceDesktop,
   IconDeviceFloppy,
   IconDeviceMobile,
+  IconPackageImport,
   IconPlus,
 } from "@tabler/icons-react"
 
@@ -65,21 +67,23 @@ function PlaceholderTile() {
 }
 
 /**
- * Create/edit form for an app. State is initialised from `artifact` once, so the
- * parent should pass `key={artifact?.namespace ?? 'new'}` to reset it when the
+ * Create/edit form for an app, or a copy of a registry template. State is
+ * initialised from `artifact` or `template` once, so the parent should pass
+ * `key={artifact?.namespace ?? template?.name ?? 'new'}` to reset it when the
  * target changes.
  */
 export function ArtifactEdit(
-  { artifact, onSaved }: { artifact?: Artifact; onSaved?: () => void } = {},
+  { artifact, template, onSaved }: { artifact?: Artifact; template?: ArtifactTemplate; onSaved?: () => void } = {},
 ) {
   const isEdit = !!artifact
-  const [name, setName] = useState(artifact?.namespace ?? "")
-  const [description, setDescription] = useState(artifact?.description ?? "")
-  const [selectedIcon, setSelectedIcon] = useState(artifact?.icon || "IconRocket")
-  const [selectedVariant, setSelectedVariant] = useState(String(artifact?.variant ?? 1))
-  const [mobileVariant, setMobileVariant] = useState(artifact?.mobile_variant ?? 1)
+  const isTemplate = !artifact && !!template
+  const [name, setName] = useState(artifact?.namespace ?? template?.name ?? "")
+  const [description, setDescription] = useState(artifact?.description ?? template?.description ?? "")
+  const [selectedIcon, setSelectedIcon] = useState(artifact?.icon || template?.icon || "IconRocket")
+  const [selectedVariant, setSelectedVariant] = useState(String(artifact?.variant ?? template?.variant ?? 1))
+  const [mobileVariant, setMobileVariant] = useState(artifact?.mobile_variant ?? template?.mobile_variant ?? 1)
   const [previewTab, setPreviewTab] = useState("desktop")
-  const [selectedColor, setSelectedColor] = useState(artifact?.color || "#ff5003")
+  const [selectedColor, setSelectedColor] = useState(artifact?.color || template?.color || "#ff5003")
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -100,7 +104,7 @@ export function ArtifactEdit(
       setError("Database is not ready yet")
       return
     }
-    if (!isEdit && !file) {
+    if (!isEdit && !isTemplate && !file) {
       setError("Choose an HTML file")
       return
     }
@@ -108,7 +112,7 @@ export function ArtifactEdit(
     setSaving(true)
     setError(null)
     try {
-      const html = file ? await file.text() : undefined
+      const html = template ? template.htmlfile : file ? await file.text() : undefined
       const theme = {
         icon: selectedIcon,
         variant: Number(selectedVariant),
@@ -137,11 +141,17 @@ export function ArtifactEdit(
     }
   }
 
-  const title = artifact ? `Edit ${artifact.namespace}` : "Add an app"
+  const title = artifact
+    ? `Edit ${artifact.namespace}`
+    : isTemplate
+      ? "Add to my apps"
+      : "Add an app"
 
   return (
     <div className="relative w-full">
-    <BrandTag className="absolute -top-3 left-0 z-10">{isEdit ? "Editing" : "New app"}</BrandTag>
+    <BrandTag className="absolute -top-3 left-0 z-10">
+      {isEdit ? "Editing" : isTemplate ? "From registry" : "New app"}
+    </BrandTag>
     <div
       ref={scrollRef}
       tabIndex={-1}
@@ -149,7 +159,9 @@ export function ArtifactEdit(
     >
       <DialogTitle className="text-xl">{title}</DialogTitle>
       <DialogDescription className="mt-1">
-        Store your application artifacts securely.
+        {isTemplate
+          ? "Name it and style it however you like. You can edit these later."
+          : "Store your application artifacts securely."}
       </DialogDescription>
       <Tabs value={previewTab} onValueChange={setPreviewTab} className="my-4 items-center">
         <TabsList>
@@ -226,6 +238,14 @@ export function ArtifactEdit(
                   onChange={(event) => setDescription(event.target.value)}
                 />
               </Field>
+              {isTemplate ? (
+                <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <IconPackageImport size={16} className="mt-0.5 shrink-0" />
+                  <span>
+                    This app is copied from the registry. Your copy is stored on this device, and keeps working even if the registry changes.
+                  </span>
+                </div>
+              ) : (
               <Field>
                 <FileUpload
                   label={isEdit ? "Replace HTML file (optional)" : "App File"}
@@ -239,6 +259,7 @@ export function ArtifactEdit(
                   <span className="text-xs whitespace-nowrap mt-12">(no external CSS or JavaScript files)</span>
                 </FieldDescription>
               </Field>
+              )}
               <Field>
                 <FieldLabel htmlFor="artifact-edit-icon">Icon</FieldLabel>
                 <IconPicker
@@ -347,7 +368,7 @@ export function ArtifactEdit(
               className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
             >
               {saving ? <Spinner /> : isEdit ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
-              {isEdit ? "Save changes" : "Add app"}
+              {isEdit ? "Save changes" : isTemplate ? "Add to my apps" : "Add app"}
             </Button>
             <DialogClose asChild>
               <Button variant="ghost" type="button" className="w-full p-5">
