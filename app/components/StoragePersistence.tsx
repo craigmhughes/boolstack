@@ -392,6 +392,8 @@ export function StoragePersistence({
           >
             <Button
               onClick={() => setMinimized(false)}
+              aria-label="Backup not set up. Open setup"
+              title="Backup not set up"
               size="icon"
               className="p-6 hover:bg-yellow-950 bg-slate-900 border border-yellow-900 cursor-pointer hover:bottom-1"
             >
