@@ -65,17 +65,36 @@ export default function ClientDatabaseGateway({ children, backupFile }: { childr
           HtmlFile TEXT NOT NULL,
           Icon TEXT NOT NULL,
           Variant INTEGER NOT NULL DEFAULT 1,
-          Color TEXT NOT NULL DEFAULT '#ff5003'
+          Color TEXT NOT NULL DEFAULT '#ff5003',
+          Description TEXT NOT NULL DEFAULT ''
         );
 
         -- Existing databases already have the table without these columns
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Variant INTEGER NOT NULL DEFAULT 1;
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Color TEXT NOT NULL DEFAULT '#ff5003';
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Description TEXT NOT NULL DEFAULT '';
 
         -- NAMESPACED LOCAL STORAGE
+        -- Migrate the old (Namespace PK + Value) shape by dropping it
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.tables
+            WHERE table_name = 'namespaced_local_storage'
+          ) AND NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_name = 'namespaced_local_storage' AND column_name = 'key'
+          ) THEN
+            DROP TABLE namespaced_local_storage;
+          END IF;
+        END $$;
+
         CREATE TABLE IF NOT EXISTS namespaced_local_storage (
-          Namespace TEXT PRIMARY KEY,
-          Value TEXT NOT NULL
+          Namespace TEXT NOT NULL,
+          Key TEXT NOT NULL,
+          Value TEXT NOT NULL,
+          Updated_At BIGINT NOT NULL,
+          PRIMARY KEY (Namespace, Key)
         );
       `);
 

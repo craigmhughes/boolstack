@@ -53,6 +53,7 @@ export type FeatureCardProps = {
   className?: string
   onClick?: () => void
   onDelete?: () => void | Promise<void>
+  onEdit?: () => void
 }
 
 const base = {
@@ -122,6 +123,7 @@ export function FeatureCard({
   className,
   onClick,
   onDelete,
+  onEdit: _onEdit,
 }: FeatureCardProps) {
   const Icon = iconMap[icon] ?? Sparkles
   const index = Math.min(Math.max(Math.round(variant), 1), 8) - 1
