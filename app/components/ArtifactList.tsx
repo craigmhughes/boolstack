@@ -14,19 +14,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
-import { IconApps } from "@tabler/icons-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { BrandDivider, BrandHeading, BrandTag } from "./brand";
+import { IconAlertHexagon, IconUpload } from "@tabler/icons-react";
 
 /**
  * List view for all stored artifacts, laid out as a CSS-columns masonry grid.
@@ -79,8 +71,8 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
   if (!result) {
     return (
       <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4" aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="mb-4 break-inside-avoid h-56 w-full animate-pulse rounded-xl bg-muted" />
+        {["h-56", "h-72", "h-44"].map((h, i) => (
+          <div key={i} className={`mb-4 break-inside-avoid ${h} w-full animate-pulse rounded-[24px] bg-slate-800/60`} />
         ))}
       </div>
     );
@@ -91,24 +83,31 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
   return (
     <div>
       {count === 0 ? (
-        <Empty>
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <IconApps />
-            </EmptyMedia>
-            <EmptyTitle>No apps yet</EmptyTitle>
-            <EmptyDescription>
-              Upload a self-contained HTML file to add your first app.
-            </EmptyDescription>
-          </EmptyHeader>
-          <EmptyContent>
-            <Button onClick={() => onCreate?.()}>Add app</Button>
-          </EmptyContent>
-        </Empty>
+        <div className="mx-auto flex w-full max-w-screen-sm flex-col gap-8">
+          <Card className="relative w-full overflow-visible">
+            <BrandTag className="absolute -top-3 left-0">Get started</BrandTag>
+            <CardContent className="flex flex-col gap-4 p-4 pt-8">
+              <p className="text-sm">
+                Add a self-contained HTML app. It&apos;s stored locally and backed up with your data.
+              </p>
+              <Button
+                className="w-full gap-3 rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
+                onClick={() => onCreate?.()}
+              >
+                <IconUpload size={16} />
+                Add your first app
+              </Button>
+            </CardContent>
+          </Card>
+          <BrandDivider>Apps run sandboxed with their own namespaced storage</BrandDivider>
+        </div>
       ) : (
         <>
-          <div className="mb-4 text-sm text-muted-foreground">
-            {count} {count === 1 ? "app" : "apps"}
+          <div className="mb-8 flex items-center gap-4">
+            <BrandHeading as="h2">Your apps</BrandHeading>
+            <BrandTag>
+              {count} {count === 1 ? "app" : "apps"}
+            </BrandTag>
           </div>
           <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4">
             {result.rows.map((artifact) => (
@@ -144,20 +143,30 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
 
       <Dialog open={!!deleting} onOpenChange={(o) => !o && !deleteBusy && setDeleting(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete {deleting?.namespace}?</DialogTitle>
-            <DialogDescription>
-              The app file and all of its saved data will be erased. This can&apos;t be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleting(null)} disabled={deleteBusy}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={deleteBusy}>
-              Delete
-            </Button>
-          </DialogFooter>
+          <div className="relative w-full">
+            <BrandTag tone="danger" className="absolute -top-3 left-0 z-10">Delete app</BrandTag>
+            <div className="flex flex-col gap-4 p-4 pt-8">
+              <DialogTitle className="text-xl">Delete {deleting?.namespace}?</DialogTitle>
+              <DialogDescription asChild>
+                <div className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-[11px] text-red-400">
+                  <IconAlertHexagon size={16} className="shrink-0" />
+                  <span>This erases the app file and all of its saved data. This can&apos;t be undone.</span>
+                </div>
+              </DialogDescription>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <Button variant="ghost" onClick={() => setDeleting(null)} disabled={deleteBusy}>
+                  Cancel
+                </Button>
+                <Button
+                  className="bg-red-600 text-white hover:bg-red-700"
+                  onClick={confirmDelete}
+                  disabled={deleteBusy}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
