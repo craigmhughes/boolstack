@@ -49,7 +49,7 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
     icon: 'size-[76px] self-start rounded-[22px] [&_svg]:size-[38px] bg-black',
   },
   slimline: {
-    root: 'col-span-1 min-[561px]:col-span-2 min-h-[120px] min-[561px]:min-h-[122px] flex-row items-center gap-[18px] pr-[62px]',
+    root: 'col-span-1 min-[561px]:col-span-2 min-h-[120px] min-[561px]:min-h-[122px] flex-row items-center gap-[18px] pr-[112px]',
     icon: 'shrink-0 bg-black',
     description: 'mt-1.5',
     actions: 'top-1/2 -mt-3.5',
