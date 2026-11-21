@@ -9,6 +9,7 @@ import { ArtifactEdit } from "./ArtifactEdit";
 import { scheduleBackup } from "../lib/db";
 import { deleteArtifact, artifactStoragePrefix } from "../lib/artifacts";
 import { FeatureCard } from "./feature-card";
+import { LauncherGrid } from "./LauncherGrid";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -44,6 +45,23 @@ function useColumnCount() {
   return useSyncExternalStore(subscribeColumns, getColumnCount, () => 1);
 }
 
+const MOBILE_QUERY = "(max-width: 639px)";
+
+function subscribeMobile(cb: () => void) {
+  const m = window.matchMedia(MOBILE_QUERY);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+}
+
+/** True below 640px (launcher layout). SSR default is the desktop layout. */
+function useIsMobile() {
+  return useSyncExternalStore(
+    subscribeMobile,
+    () => window.matchMedia(MOBILE_QUERY).matches,
+    () => false,
+  );
+}
+
 /** Approximate relative card height: slimline (variant 4) is short. */
 function cardWeight(variant: number) {
   return variant === 4 ? 1 : 2;
@@ -76,6 +94,7 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
   const [deleteBusy, setDeleteBusy] = useState(false);
 
   const columnCount = useColumnCount();
+  const isMobile = useIsMobile();
   const result = useLiveQuery<Artifact>(`
     SELECT
       namespace,
@@ -121,6 +140,19 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
     }
   };
 
+  if (!result && isMobile) {
+    return (
+      <div className="grid grid-cols-4 max-[359px]:grid-cols-3 gap-x-2 gap-y-6 justify-items-center" aria-busy="true">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="flex flex-col items-center gap-[6px]">
+            <div className="size-[60px] rounded-[28%] bg-slate-800/60 animate-pulse" />
+            <div className="h-2 w-10 rounded bg-slate-800/60 animate-pulse" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (!result) {
     return (
       <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4" aria-busy="true">
@@ -156,12 +188,20 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
         </div>
       ) : (
         <>
-          <div className="mb-8 flex items-center gap-4">
-            <BrandHeading as="h2">Your apps</BrandHeading>
+          <div className="mb-6 flex items-center gap-4 sm:mb-8">
+            <BrandHeading as="h2" className="max-sm:text-3xl">Your apps</BrandHeading>
             <BrandTag>
               {count} {count === 1 ? "app" : "apps"}
             </BrandTag>
           </div>
+          {isMobile ? (
+            <LauncherGrid
+              artifacts={result.rows}
+              onOpen={setActiveArtifact}
+              onEdit={setEditing}
+              onDelete={setDeleting}
+            />
+          ) : (
           <div className="flex gap-4 items-start">
             {columns.map((col, ci) => (
               <div key={ci} className="flex-1 min-w-0 flex flex-col gap-4">
@@ -182,6 +222,7 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
               </div>
             ))}
           </div>
+          )}
         </>
       )}
 
