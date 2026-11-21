@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fast</title>
+<meta name="description" content="Intermittent fasting timer with fasting stages, history and awards.">
+<meta name="boolstack:icon" content="IconFlame">
+<meta name="boolstack:color" content="#ffd23f">
+<meta name="boolstack:variant" content="3">
+<meta name="boolstack:mobile-variant" content="4">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f13;
+    --surface: #16181f;
+    --border: #252830;
+    --amber: #f5a623;
+    --amber-dim: #7a5112;
+    --green: #4caf7d;
+    --blue: #5b8ef0;
+    --red: #e05c5c;
+    --text: #e8e4dc;
+    --muted: #6b6f7a;
+    --ring-size: 240px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 48px; }
+  h1 { font-family: 'Fraunces', serif; font-weight: 300; font-size: 1.6rem; letter-spacing: 0.05em; color: var(--amber); margin-bottom: 4px; }
+  .sub { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 28px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px; margin-bottom: 28px; }
+  .tab { padding: 6px 20px; border-radius: 5px; border: none; background: transparent; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.7rem; letter-spacing: 0.1em; cursor: pointer; transition: all .2s; }
+  .tab.active { background: var(--border); color: var(--text); }
+
+  /* Timer card */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; width: 100%; max-width: 380px; }
+
+  /* Preset selector */
+  .presets { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+  .preset { flex: 1; min-width: 60px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.68rem; cursor: pointer; transition: all .2s; text-align: center; }
+  .preset:hover, .preset.sel { border-color: var(--amber); color: var(--amber); }
+
+  /* Ring */
+  .ring-wrap { position: relative; width: var(--ring-size); height: var(--ring-size); margin: 0 auto 20px; }
+  .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-track { fill: none; stroke: var(--border); stroke-width: 8; }
+  .ring-fill { fill: none; stroke: var(--amber); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset .8s ease, stroke .5s; }
+  .ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
+  .time-big { font-size: 2.2rem; font-weight: 500; letter-spacing: -0.02em; }
+  .time-label { font-size: 0.58rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
+
+  /* Stage pill */
+  .stage { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 24px; padding: 6px 14px; margin: 0 auto 20px; width: fit-content; font-size: 0.7rem; transition: all .5s; }
+  .stage-icon { font-size: 1rem; }
+  .stage-name { color: var(--amber); }
+
+  /* Stage timeline */
+  .timeline { display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; }
+  .tl-item { display: flex; align-items: center; gap: 10px; font-size: 0.63rem; color: var(--muted); transition: color .5s; }
+  .tl-item.done { color: var(--green); }
+  .tl-item.active-stage { color: var(--amber); }
+  .tl-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); flex-shrink: 0; transition: background .5s; }
+  .tl-item.done .tl-dot { background: var(--green); }
+  .tl-item.active-stage .tl-dot { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .tl-time { margin-left: auto; opacity: .5; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 10px; }
+  .btn { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 0.75rem; letter-spacing: 0.08em; cursor: pointer; transition: all .2s; }
+  .btn-start { background: var(--amber); border-color: var(--amber); color: #000; font-weight: 500; }
+  .btn-start:hover { opacity: .85; }
+  .btn-stop { background: transparent; color: var(--red); border-color: var(--red); }
+  .btn-stop:hover { background: #2a1515; }
+
+  /* Achievements */
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 10px; border: 1px solid var(--border); border-radius: 12px; font-size: 0.6rem; color: var(--muted); min-width: 70px; text-align: center; transition: all .3s; }
+  .badge.earned { border-color: var(--amber-dim); color: var(--text); background: #1a1508; }
+  .badge-icon { font-size: 1.4rem; filter: grayscale(1) opacity(.3); transition: filter .3s; }
+  .badge.earned .badge-icon { filter: none; }
+
+  /* History */
+  .hist-list { display: flex; flex-direction: column; gap: 10px; }
+  .hist-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .hist-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .hist-dur { font-size: 0.9rem; color: var(--amber); }
+  .hist-date { font-size: 0.6rem; color: var(--muted); }
+  .hist-meta { font-size: 0.63rem; color: var(--muted); display: flex; gap: 12px; }
+  .hist-meta span { color: var(--text); }
+  .empty { color: var(--muted); font-size: 0.75rem; text-align: center; padding: 40px 0; }
+
+  .hidden { display: none !important; }
+  .streak-bar { font-size: 0.65rem; color: var(--muted); text-align: center; margin-bottom: 16px; }
+  .streak-bar b { color: var(--amber); }
+  .notif { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--amber); color: #000; padding: 10px 20px; border-radius: 24px; font-size: 0.72rem; font-family: 'DM Mono', monospace; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .4s; z-index: 99; }
+  .notif.show { opacity: 1; }
+
+  /* CRUD */
+  .hist-item { position: relative; }
+  .hist-actions { display: flex; gap: 6px; margin-top: 10px; }
+  .btn-sm { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: transparent; font-family: 'DM Mono', monospace; font-size: 0.6rem; cursor: pointer; transition: all .2s; color: var(--muted); }
+  .btn-sm:hover { border-color: var(--red); color: var(--red); }
+  .btn-sm.edit:hover { border-color: var(--amber); color: var(--amber); }
+  .hist-footer { display: flex; justify-content: flex-end; margin-top: 14px; }
+  .btn-clear-all { padding: 6px 14px; border-radius: 8px; border: 1px solid #3a1a1a; background: transparent; color: var(--red); font-family: 'DM Mono', monospace; font-size: 0.62rem; cursor: pointer; transition: all .2s; }
+  .btn-clear-all:hover { background: #2a1010; }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.7); display: flex; align-items: center; justify-content: center; z-index: 200; backdrop-filter: blur(4px); }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; width: 90%; max-width: 340px; }
+  .modal h3 { font-family: 'Fraunces', serif; font-weight: 300; color: var(--amber); margin-bottom: 16px; font-size: 1.1rem; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 0.62rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+  .field input, .field select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 0.75rem; outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--amber); }
+  .modal-btns { display: flex; gap: 8px; margin-top: 18px; }
+  .modal-btns .btn { font-size: 0.7rem; padding: 10px; }
+
+  /* Awards clear */
+  .awards-footer { margin-top: 16px; display: flex; justify-content: flex-end; }
+
+</style>
+</head>
+<body>
+
+<h1>Fast</h1>
+<p class="sub">intermittent fasting tracker</p>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('timer')">Timer</button>
+  <button class="tab" onclick="showTab('history')">History</button>
+  <button class="tab" onclick="showTab('awards')">Awards</button>
+</div>
+
+<!-- TIMER TAB -->
+<div id="tab-timer" class="card">
+  <div class="presets" id="presets">
+    <button class="preset sel" onclick="setPreset(16)">16h</button>
+    <button class="preset" onclick="setPreset(18)">18h</button>
+    <button class="preset" onclick="setPreset(20)">20h</button>
+    <button class="preset" onclick="setPreset(24)">24h</button>
+    <button class="preset" onclick="setPreset(36)">36h</button>
+  </div>
+
+  <div class="ring-wrap">
+    <svg class="ring-svg" viewBox="0 0 240 240">
+      <circle class="ring-track" cx="120" cy="120" r="108"/>
+      <circle class="ring-fill" id="ring" cx="120" cy="120" r="108" stroke-dasharray="678.6" stroke-dashoffset="0"/>
+    </svg>
+    <div class="ring-center">
+      <div class="time-big" id="time-display">00:00:00</div>
+      <div class="time-label" id="time-sublabel">select & start</div>
+    </div>
+  </div>
+
+  <div class="stage" id="stage-pill">
+    <span class="stage-icon">🍽️</span>
+    <span class="stage-name" id="stage-name">Ready</span>
+  </div>
+
+  <div class="timeline" id="timeline"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-start" id="btn-main" onclick="toggleFast()">Start Fast</button>
+    <button class="btn btn-stop hidden" id="btn-stop" onclick="stopFast()">End Early</button>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div id="tab-history" class="card hidden">
+  <div class="streak-bar" id="streak-bar"></div>
+  <div class="hist-list" id="hist-list"></div>
+</div>
+
+<!-- AWARDS TAB -->
+<div id="tab-awards" class="card hidden">
+  <div class="badges" id="badges"></div>
+  <div class="awards-footer">
+    <button class="btn-clear-all" onclick="clearBadges()">Reset badges</button>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-bg hidden" id="modal">
+  <div class="modal">
+    <h3>Edit Fast</h3>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="edit-date">
+    </div>
+    <div class="field">
+      <label>Duration (hours)</label>
+      <input type="number" id="edit-dur" min="0.5" max="72" step="0.5">
+    </div>
+    <div class="field">
+      <label>Target (hours)</label>
+      <select id="edit-target">
+        <option value="16">16h</option>
+        <option value="18">18h</option>
+        <option value="20">20h</option>
+        <option value="24">24h</option>
+        <option value="36">36h</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Status</label>
+      <select id="edit-status">
+        <option value="1">Completed</option>
+        <option value="0">Partial</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-start" onclick="saveEdit()">Save</button>
+      <button class="btn btn-stop" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+
+<script>
+const CIRC = 2 * Math.PI * 108;
+const STAGES = [
+  { h: 0,  icon: '🍽️', name: 'Fed State' },
+  { h: 4,  icon: '⚡', name: 'Glycogen Burning' },
+  { h: 8,  icon: '🔥', name: 'Fat Burning Begins' },
+  { h: 12, icon: '🧬', name: 'Ketosis Entry' },
+  { h: 16, icon: '🌿', name: 'Autophagy Starts' },
+  { h: 24, icon: '🧠', name: 'Deep Autophagy' },
+  { h: 36, icon: '✨', name: 'Peak Renewal' },
+];
+
+const BADGES = [
+  { id: 'first',   icon: '🌱', name: 'First Fast',    desc: 'Complete 1 fast' },
+  { id: 'streak3', icon: '🔥', name: 'On Fire',       desc: '3-day streak' },
+  { id: 'streak7', icon: '⚡', name: 'Lightning',     desc: '7-day streak' },
+  { id: 'h16',     icon: '🌿', name: 'Autophagy',     desc: 'Finish a 16h fast' },
+  { id: 'h24',     icon: '🧬', name: 'Deep Clean',    desc: 'Finish a 24h fast' },
+  { id: 'h36',     icon: '✨', name: 'Ascetic',       desc: 'Finish a 36h fast' },
+  { id: 'count10', icon: '💪', name: 'Dedicated',     desc: '10 fasts total' },
+];
+
+// State
+let state = {
+  active: false, target: 16,
+  startTs: null,   // ms epoch when fast started
+};
+let ticker = null;
+
+// Load persisted fast in progress
+const saved = JSON.parse(localStorage.getItem('fast_state') || 'null');
+if (saved && saved.active) { state = saved; }
+
+function save() { localStorage.setItem('fast_state', JSON.stringify(state)); }
+
+function history() { return JSON.parse(localStorage.getItem('fast_history') || '[]'); }
+function saveHistory(h) { localStorage.setItem('fast_history', JSON.stringify(h)); }
+
+function earned() { return JSON.parse(localStorage.getItem('fast_earned') || '[]'); }
+function saveEarned(e) { localStorage.setItem('fast_earned', JSON.stringify(e)); }
+
+// --- UI helpers ---
+function showTab(t) {
+  ['timer','history','awards'].forEach(id => {
+    document.getElementById('tab-'+id).classList.toggle('hidden', id !== t);
+    document.querySelectorAll('.tab')[['timer','history','awards'].indexOf(id)].classList.toggle('active', id === t);
+  });
+  if (t === 'history') renderHistory();
+  if (t === 'awards') renderBadges();
+}
+
+function notify(msg) {
+  const n = document.getElementById('notif');
+  n.textContent = msg; n.classList.add('show');
+  setTimeout(() => n.classList.remove('show'), 2800);
+}
+
+// --- Preset ---
+function setPreset(h) {
+  if (state.active) return;
+  state.target = h;
+  document.querySelectorAll('.preset').forEach(b => b.classList.toggle('sel', b.textContent === h+'h'));
+  buildTimeline(); updateRing(0);
+  document.getElementById('time-display').textContent = pad(h)+':00:00';
+  document.getElementById('time-sublabel').textContent = 'target';
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function fmt(ms) {
+  let s = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(s/3600); s -= h*3600;
+  const m = Math.floor(s/60);   s -= m*60;
+  return `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+// --- Timeline ---
+function buildTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = STAGES.filter(s => s.h <= state.target).map(s =>
+    `<div class="tl-item" id="tl-${s.h}">
+      <div class="tl-dot"></div>
+      <span>${s.icon} ${s.name}</span>
+      <span class="tl-time">${s.h}h</span>
+    </div>`
+  ).join('');
+}
+
+// --- Ring ---
+function updateRing(pct, near) {
+  const el = document.getElementById('ring');
+  el.style.strokeDashoffset = CIRC * (1 - pct);
+  el.style.stroke = near ? 'var(--green)' : 'var(--amber)';
+}
+
+// --- Tick ---
+function tick() {
+  const elapsed = Date.now() - state.startTs;
+  const targetMs = state.target * 3600000;
+  const remaining = targetMs - elapsed;
+  const pct = Math.min(elapsed / targetMs, 1);
+  const done = remaining <= 0;
+
+  document.getElementById('time-display').textContent = fmt(done ? 0 : remaining);
+  document.getElementById('time-sublabel').textContent = done ? 'complete!' : 'remaining';
+  updateRing(pct, pct > .9);
+
+  // Stage
+  const elapsedH = elapsed / 3600000;
+  let cur = STAGES[0];
+  for (const s of STAGES) { if (elapsedH >= s.h) cur = s; else break; }
+  document.getElementById('stage-name').textContent = cur.name;
+  document.querySelector('.stage-icon').textContent = cur.icon;
+
+  // Timeline classes
+  STAGES.forEach(s => {
+    const el = document.getElementById('tl-'+s.h);
+    if (!el) return;
+    el.className = 'tl-item' + (elapsedH >= s.h ? ' done' : '') + (cur.h === s.h ? ' active-stage' : '');
+  });
+
+  if (done) { completeFast(); }
+}
+
+// --- Start / Stop ---
+function toggleFast() {
+  if (state.active) return;
+  state.active = true;
+  state.startTs = Date.now();
+  save();
+  document.getElementById('presets').style.opacity = '.3';
+  document.getElementById('presets').style.pointerEvents = 'none';
+  document.getElementById('btn-main').textContent = 'Fasting…';
+  document.getElementById('btn-main').style.opacity = '.4';
+  document.getElementById('btn-main').style.pointerEvents = 'none';
+  document.getElementById('btn-stop').classList.remove('hidden');
+  buildTimeline();
+  ticker = setInterval(tick, 1000); tick();
+}
+
+function stopFast() {
+  if (!confirm('End this fast early?')) return;
+  const elapsed = Date.now() - state.startTs;
+  recordFast(elapsed, false);
+  resetUI();
+}
+
+function completeFast() {
+  clearInterval(ticker);
+  const dur = state.target * 3600000;
+  recordFast(dur, true);
+  notify('🎉 Fast complete!');
+  resetUI();
+}
+
+function resetUI() {
+  clearInterval(ticker);
+  state.active = false; state.startTs = null; save();
+  document.getElementById('presets').style.opacity = '';
+  document.getElementById('presets').style.pointerEvents = '';
+  document.getElementById('btn-main').textContent = 'Start Fast';
+  document.getElementById('btn-main').style.opacity = '';
+  document.getElementById('btn-main').style.pointerEvents = '';
+  document.getElementById('btn-stop').classList.add('hidden');
+  document.getElementById('time-display').textContent = pad(state.target)+':00:00';
+  document.getElementById('time-sublabel').textContent = 'target';
+  document.getElementById('stage-name').textContent = 'Ready';
+  document.querySelector('.stage-icon').textContent = '🍽️';
+  updateRing(0);
+  buildTimeline();
+}
+
+// --- History & Badges ---
+function recordFast(durationMs, completed) {
+  const h = history();
+  h.unshift({ ts: Date.now(), targetH: state.target, durationMs, completed });
+  if (h.length > 50) h.pop();
+  saveHistory(h);
+  checkBadges(h);
+}
+
+function streak(hist) {
+  if (!hist.length) return 0;
+  let s = 0, prev = null;
+  for (const f of [...hist].reverse()) {
+    if (!f.completed) continue;
+    const d = new Date(f.ts).toDateString();
+    if (!prev || (new Date(prev) - new Date(d)) / 86400000 <= 1) { s++; prev = d; }
+    else break;
+  }
+  return s;
+}
+
+function checkBadges(hist) {
+  const e = new Set(earned());
+  const completed = hist.filter(f => f.completed);
+  const sr = streak(hist);
+  const before = e.size;
+
+  if (completed.length >= 1) e.add('first');
+  if (sr >= 3) e.add('streak3');
+  if (sr >= 7) e.add('streak7');
+  if (completed.some(f => f.targetH >= 16)) e.add('h16');
+  if (completed.some(f => f.targetH >= 24)) e.add('h24');
+  if (completed.some(f => f.targetH >= 36)) e.add('h36');
+  if (completed.length >= 10) e.add('count10');
+
+  if (e.size > before) {
+    const newOnes = BADGES.filter(b => e.has(b.id) && !earned().includes(b.id));
+    newOnes.forEach(b => setTimeout(() => notify(`🏅 Badge: ${b.name}`), 600));
+  }
+  saveEarned([...e]);
+}
+
+function renderHistory() {
+  const h = history();
+  const sr = streak(h);
+  document.getElementById('streak-bar').innerHTML = h.length
+    ? `<b>${sr}</b> day streak &nbsp;·&nbsp; <b>${h.filter(f=>f.completed).length}</b> completed`
+    : '';
+  const el = document.getElementById('hist-list');
+  if (!h.length) { el.innerHTML = '<div class="empty">No fasts recorded yet.</div>'; return; }
+  el.innerHTML = h.map((f, i) => {
+    const hrs = (f.durationMs / 3600000).toFixed(1);
+    const date = new Date(f.ts).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+    const status = f.completed ? '✓ complete' : '⚡ partial';
+    return `<div class="hist-item">
+      <div class="hist-header">
+        <span class="hist-dur">${hrs}h</span>
+        <span class="hist-date">${date}</span>
+      </div>
+      <div class="hist-meta">target <span>${f.targetH}h</span> &nbsp; ${status}</div>
+      <div class="hist-actions">
+        <button class="btn-sm edit" onclick="openEdit(${i})">edit</button>
+        <button class="btn-sm" onclick="deleteEntry(${i})">delete</button>
+      </div>
+    </div>`;
+  }).join('') + `<div class="hist-footer"><button class="btn-clear-all" onclick="clearHistory()">Clear all history</button></div>`;
+}
+
+function renderBadges() {
+  const e = new Set(earned());
+  document.getElementById('badges').innerHTML = BADGES.map(b =>
+    `<div class="badge ${e.has(b.id)?'earned':''}">
+      <span class="badge-icon">${b.icon}</span>
+      <span>${b.name}</span>
+    </div>`
+  ).join('');
+}
+
+// --- CRUD ---
+let editIdx = -1;
+
+function deleteEntry(i) {
+  if (!confirm('Delete this fast?')) return;
+  const h = history(); h.splice(i, 1); saveHistory(h);
+  checkBadges(h); renderHistory();
+  notify('Entry deleted');
+}
+
+function clearHistory() {
+  if (!confirm('Clear ALL history? This cannot be undone.')) return;
+  saveHistory([]); saveEarned([]);
+  renderHistory(); renderBadges();
+  notify('History cleared');
+}
+
+function clearBadges() {
+  if (!confirm('Reset all badges?')) return;
+  saveEarned([]); renderBadges();
+  notify('Badges reset');
+}
+
+function openEdit(i) {
+  editIdx = i;
+  const f = history()[i];
+  const d = new Date(f.ts);
+  document.getElementById('edit-date').value = d.toISOString().slice(0,10);
+  document.getElementById('edit-dur').value = (f.durationMs / 3600000).toFixed(1);
+  document.getElementById('edit-target').value = f.targetH;
+  document.getElementById('edit-status').value = f.completed ? '1' : '0';
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('modal').classList.add('hidden'); editIdx = -1; }
+
+function saveEdit() {
+  if (editIdx < 0) return;
+  const h = history();
+  const dateVal = document.getElementById('edit-date').value;
+  const durH = parseFloat(document.getElementById('edit-dur').value);
+  const targetH = parseInt(document.getElementById('edit-target').value);
+  const completed = document.getElementById('edit-status').value === '1';
+  if (!dateVal || isNaN(durH) || durH <= 0) { notify('Invalid values'); return; }
+  h[editIdx] = { ts: new Date(dateVal).getTime(), targetH, durationMs: durH * 3600000, completed };
+  saveHistory(h); checkBadges(h);
+  closeModal(); renderHistory();
+  notify('Entry updated');
+}
+
+
+// --- Init ---
+buildTimeline();
+updateRing(0);
+document.querySelectorAll('.preset')[0].classList.add('sel');
+if (state.active) {
+  document.getElementById('presets').style.opacity = '.3';
+  document.getElementById('presets').style.pointerEvents = 'none';
+  document.getElementById('btn-main').textContent = 'Fasting…';
+  document.getElementById('btn-main').style.opacity = '.4';
+  document.getElementById('btn-main').style.pointerEvents = 'none';
+  document.getElementById('btn-stop').classList.remove('hidden');
+  ticker = setInterval(tick, 1000); tick();
+}
+</script>
+</body>
+</html>
