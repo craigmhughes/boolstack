@@ -131,7 +131,12 @@ export function ArtifactView({children}: {children: React.ReactNode}) {
   return (
     <ArtifactViewContext.Provider value={contextValue}>
       {activeArtifact ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black text-slate-100">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeArtifact.namespace}
+          className="fixed inset-0 z-50 flex flex-col bg-black text-slate-100"
+        >
           <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-3 pt-[env(safe-area-inset-top)] box-content">
             <div className="flex min-w-0 items-center gap-3">
               <BrandLogo size="sm" showWordmark={false} />
@@ -169,7 +174,9 @@ export function ArtifactView({children}: {children: React.ReactNode}) {
           )}
         </div>
       ) : null}
-      {children}
+      <div inert={activeArtifact !== null} className="contents">
+        {children}
+      </div>
     </ArtifactViewContext.Provider>
   );
 }
