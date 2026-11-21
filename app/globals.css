@@ -136,6 +136,25 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Brand dark tokens (slate palette from the intro), scoped to dialog surfaces. */
+.brand-dark {
+  --background: #020617;
+  --foreground: #f1f5f9;
+  --card: #020617;
+  --card-foreground: #f1f5f9;
+  --popover: #020617;
+  --popover-foreground: #f1f5f9;
+  --secondary: #1e293b;
+  --secondary-foreground: #f1f5f9;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f1f5f9;
+  --border: #1e293b;
+  --input: #334155;
+  --ring: #3b82f6;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
