@@ -93,6 +93,7 @@ export function ArtifactEdit(
       const theme = {
         icon: selectedIcon,
         variant: Number(selectedVariant),
+        mobile_variant: artifact?.mobile_variant ?? 1,
         color: selectedColor,
         description: description.trim(),
       }
