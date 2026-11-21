@@ -26,13 +26,6 @@ import { DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dia
 import { IconPicker } from "./IconPicker"
 import { FileUpload } from "./file-upload"
 import { FeatureCard, featureCardVariantNames } from "./feature-card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { BrandTag } from "./brand"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
@@ -268,19 +261,53 @@ export function ArtifactEdit(
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="artifact-edit-variant">Desktop card style</FieldLabel>
-              <Select value={selectedVariant} onValueChange={setSelectedVariant}>
-                <SelectTrigger id="artifact-edit-variant" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {featureCardVariantNames.map((variantName, index) => (
-                    <SelectItem key={variantName} value={String(index + 1)}>
-                      {index + 1}. {variantName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FieldLabel id="artifact-edit-variant-label">Desktop card style</FieldLabel>
+              <div
+                role="radiogroup"
+                aria-labelledby="artifact-edit-variant-label"
+                className="grid grid-cols-3 gap-2"
+              >
+                {featureCardVariantNames.map((variantName, index) => {
+                  const n = index + 1
+                  const checked = Number(selectedVariant) === n
+                  return (
+                    <button
+                      key={variantName}
+                      type="button"
+                      role="radio"
+                      aria-checked={checked}
+                      aria-label={`${n}. ${variantName}`}
+                      onClick={() => {
+                        setSelectedVariant(String(n))
+                        setPreviewTab("desktop")
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                        checked ? "bg-blue-500/15 ring-2 ring-blue-500" : "hover:bg-muted",
+                      )}
+                    >
+                      <span className="flex w-full justify-center rounded-lg bg-slate-900 p-2">
+                        <span className="relative h-[92px] w-full overflow-hidden rounded-md">
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute left-1/2 top-1/2 w-[320px] -translate-x-1/2 -translate-y-1/2 scale-[0.25]"
+                          >
+                            <FeatureCard
+                              preview
+                              title={name.trim() || "Your app"}
+                              description={description}
+                              icon={selectedIcon}
+                              variant={n}
+                              color={selectedColor}
+                            />
+                          </span>
+                        </span>
+                      </span>
+                      {variantName}
+                    </button>
+                  )
+                })}
+              </div>
             </Field>
             <Field>
               <FieldLabel htmlFor="artifact-edit-color">Colour</FieldLabel>
