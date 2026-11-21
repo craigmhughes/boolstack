@@ -91,7 +91,7 @@ export async function checkExistingBackup() {
   try {
     const fileHandle = await backupSource.getFileHandle('backup.tar.gz', { create: false });
     return (await fileHandle.getFile()).size > 0;
-  } catch (error) {
+  } catch {
     return false;
   }
 }

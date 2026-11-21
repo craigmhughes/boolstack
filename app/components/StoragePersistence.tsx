@@ -55,7 +55,7 @@ async function selectBackupSource(setStoragePersisted: Dispatch<SetStateAction<b
     console.log('File saved successfully inside the directory!');
     requestPersistentStorage(setStoragePersisted);
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -113,8 +113,8 @@ export function StoragePersistence({
     setShouldThink(false);
   };
 
-  const stepperContent = [  
-    <div className="flex flex-col gap-8 max-md:w-full">
+  const stepperContent = [
+    <div key="step-select-folder" className="flex flex-col gap-8 max-md:w-full">
       <Button
         className={
           cx(
@@ -132,7 +132,7 @@ export function StoragePersistence({
         Your backup file <Kbd className="px-2 border mx-1 text-[11px] text-slate-400">backup.tar.gz</Kbd> will be created in the selected folder if it does not already exist.
       </p>
     </div>,
-    <div className="flex flex-col gap-3 items-center w-full">
+    <div key="step-install" className="flex flex-col gap-3 items-center w-full">
       <Button
         className={
           cx(
@@ -159,7 +159,7 @@ export function StoragePersistence({
         Skip
       </Button>
     </div>,
-    <div className="flex flex-col gap-4 items-center w-full">
+    <div key="step-complete" className="flex flex-col gap-4 items-center w-full">
       <div className="text-sm text-slate-300 text-center">
         <p className="font-semibold mb-2">Setup complete!</p>
         <p className="text-xs">Your data is now secure and will persist across browser sessions.</p>
