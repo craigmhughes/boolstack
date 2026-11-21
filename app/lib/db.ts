@@ -25,7 +25,7 @@ export function scheduleBackup(db: PGliteWithLive, delayMs = 1500): void {
 export async function backup(db: PGliteWithLive) {
   const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
   if (!backupSource) {
-    console.error("Backup source is not available");
+    console.debug("Backup source is not available");
     return;
   };
 
