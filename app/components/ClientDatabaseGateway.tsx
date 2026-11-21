@@ -1,5 +1,5 @@
 'use client';
-import { Badge } from '@/components/ui/badge';
+import { BrandTag } from './brand/BrandTag';
 import { Spinner } from '@/components/ui/spinner';
 import { PGlite } from '@electric-sql/pglite';
 import { PGliteProvider } from '@electric-sql/pglite-react';
@@ -124,10 +124,12 @@ export default function ClientDatabaseGateway({ children, backupFile }: { childr
 
   if (!db) {
     return (
-      <Badge>
-        <Spinner data-icon="inline-start" />
-        Syncing
-      </Badge>
+      <div className="flex justify-center py-10">
+        <BrandTag>
+          <Spinner data-icon="inline-start" />
+          Syncing
+        </BrandTag>
+      </div>
     );
   }
 

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card"
 import { Kbd } from "@/components/ui/kbd";
 import { Grid } from "ldrs/react";
+import { BrandLogo } from "./brand/BrandLogo";
 import 'ldrs/react/Grid.css'
 
 async function requestPersistentStorage(
@@ -282,16 +283,7 @@ export function StoragePersistence({
               <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full h-full max-w-screen-sm max-md:max-w-[340px] mx-auto">
                 <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full xl:justify-center">
                   <div className="flex-1 max-h-[180px] flex items-end justify-end">
-                    <div className="font-medium tracking-tighter flex items-end gap-2 [@media(max-height:768px)]:mb-6">
-                      <span className="flex items-center justify-center relative -top-0.5">
-                        <Grid
-                          size="20"
-                          speed="4"
-                          color="white"
-                        />
-                      </span>
-                      Boolstack.dev
-                    </div>
+                    <BrandLogo className="[@media(max-height:768px)]:mb-6" />
                   </div>
                   <div className="flex flex-col items-start justify-center gap-8 w-full mb-10">
                     <h1 className="font-medium text-4xl tracking-tight [@media(max-height:768px)]:hidden">Your apps, your way. Start building today.</h1>

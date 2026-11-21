@@ -15,7 +15,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button";
-import { ModeToggle } from "./components/ThemeToggle";
+import { GradientBackground } from "./components/GradientBackground";
+import { BrandLogo } from "./components/brand/BrandLogo";
 import { IconPlus } from "@tabler/icons-react";
 
 const APP_REVEAL_DELAY = 1000;
@@ -59,17 +60,27 @@ export default function Home() {
   }, []); 
 
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex flex-col flex-1 items-center justify-center font-sans text-slate-100">
+      <GradientBackground
+        showGrain
+        grainOpacity={0.15}
+        className="!fixed inset-0 -z-10 bg-black min-h-0 h-full w-full"
+      />
       <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
       <div className={
         cx(
-          "fixed h-full w-full bg-zinc-50 dark:bg-black flex justify-center items-center",
+          "fixed h-full w-full flex justify-center items-center",
           !showApp && "opacity-100",
           showApp && "opacity-0 transition-opacity duration-500 pointer-events-none"
         )
       } >
+        <GradientBackground
+          showGrain
+          grainOpacity={0.15}
+          className="!absolute inset-0 bg-black min-h-0 h-full w-full"
+        />
         <div className={cx(
-          "transition-all duration-1000 flex gap-8 flex-col",
+          "relative transition-all duration-1000 flex gap-8 flex-col",
           !gridVisible && "scale-0 opacity-0",
           gridVisible && "scale-100 opacity-100"
         )}>
@@ -81,10 +92,9 @@ export default function Home() {
           <p className="text-[11px] tracking-wider text-slate-400">Loading...</p>
         </div>
       </div>
-      <main className="flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 py-6 sm:py-10 bg-white dark:bg-black">
-        <header className="flex items-center justify-between mb-6">
-          <span className="font-medium tracking-tight text-xl">boolstack</span>
-          <ModeToggle />
+      <main className="flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 py-6 sm:py-10">
+        <header className="flex items-center justify-between mb-10">
+          <BrandLogo />
         </header>
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
@@ -93,7 +103,7 @@ export default function Home() {
                 <DialogTrigger asChild className="cursor-pointer">
                   <Button
                     aria-label="Add app"
-                    className="size-14 rounded-full bg-green-600 fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
+                    className="size-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_40px_rgba(37,99,235,.45)] fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
                   >
                     <IconPlus className="size-6 stroke-2" />
                   </Button>
