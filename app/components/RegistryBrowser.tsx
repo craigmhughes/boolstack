@@ -117,15 +117,23 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
 
+  // Mirror `adding` into a ref so the Escape listener never reads a stale value.
+  const addingRef = useRef(adding);
   useEffect(() => {
+    addingRef.current = adding;
+  }, [adding]);
+
+  useEffect(() => {
+    // Capture phase on window runs before Radix's document-level Escape handling,
+    // so an Escape meant for the Add dialog is seen while it is still open.
     const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || adding) return;
+      if (event.key !== "Escape" || event.defaultPrevented || addingRef.current) return;
       if (selected) setSelected(null);
       else close();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [adding, selected, close]);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [selected, close]);
 
   const listLoading = !listResult || listResult.attempt !== attempt;
   const apps = listResult && !listLoading ? listResult.apps : undefined;
