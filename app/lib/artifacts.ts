@@ -1,5 +1,6 @@
 import { PGliteWithLive } from "@electric-sql/pglite/live"
 import { Artifact, ArtifactTheme } from "./types";
+import { injectStorageProxy } from "./storage-bridge";
 
 /**
  * Retrieves the HTML file URL of an artifact by its namespace.
@@ -7,7 +8,11 @@ import { Artifact, ArtifactTheme } from "./types";
  * @param db - The database instance to query.
  * @param namespace - The namespace of the artifact to retrieve.
  */
-export async function getArtifactUrlByNamespace(db: PGliteWithLive, namespace: string) {
+export async function getArtifactUrlByNamespace(
+  db: PGliteWithLive,
+  namespace: string,
+  transform: (html: string) => string = (html) => injectStorageProxy(html, namespace),
+) {
   const result = await db.query<Artifact>(
     "SELECT HtmlFile FROM artifacts WHERE Namespace = $1",
     [namespace],
@@ -18,7 +23,7 @@ export async function getArtifactUrlByNamespace(db: PGliteWithLive, namespace: s
     throw new Error(`Artifact not found for namespace: ${namespace}`);
   }
 
-  const blob = new Blob([row.htmlfile], { type: "text/html;charset=utf-8" })
+  const blob = new Blob([transform(row.htmlfile)], { type: "text/html;charset=utf-8" })
   return URL.createObjectURL(blob);
 }
 
