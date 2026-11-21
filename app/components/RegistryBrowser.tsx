@@ -6,19 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { fetchRegistryApps, fetchRegistryHtml } from "../lib/registry-client";
-import type { ArtifactTemplate, RegistryApp } from "../lib/registry-types";
+import type { RegistryApp } from "../lib/registry-types";
 import { AppIcon } from "./app-icon";
 import { ArtifactEdit } from "./ArtifactEdit";
 import { BrandHeading, BrandLogo, BrandTag } from "./brand";
 import { FeatureCard } from "./feature-card";
 import { GradientBackground } from "./GradientBackground";
 import { ErrorBadge, RegistryInfoPanel, RegistryPreviewFrame } from "./RegistryPreview";
-
-// TODO remove cast once template prop is merged
-const ArtifactEditFromTemplate = ArtifactEdit as unknown as React.ComponentType<{
-  template: ArtifactTemplate;
-  onSaved?: () => void;
-}>;
 
 const MOBILE_QUERY = "(max-width: 639px)";
 
@@ -282,7 +276,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
           <DialogTitle className="sr-only">Add {selected?.name} to my apps</DialogTitle>
           <DialogDescription className="sr-only">Add a copy of this app to your library.</DialogDescription>
           {selected && html !== null && (
-            <ArtifactEditFromTemplate
+            <ArtifactEdit
               key={selected.slug}
               template={{
                 name: selected.name,
