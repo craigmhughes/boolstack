@@ -331,7 +331,7 @@ export function ArtifactEdit(
                       }}
                       className={cn(
                         "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                        checked ? "bg-blue-50 ring-2 ring-blue-500" : "hover:bg-muted",
+                        checked ? "bg-blue-500/15 ring-2 ring-blue-500" : "hover:bg-muted",
                       )}
                     >
                       <span className="flex w-full justify-center rounded-lg bg-black p-2">
@@ -360,7 +360,7 @@ export function ArtifactEdit(
             <span>{error}</span>
           </div>
         )}
-        <div className="sticky -bottom-4 -mx-4 flex flex-col gap-2 border-t bg-white px-4 pt-3 pb-4">
+        <div className="sticky -bottom-4 -mx-4 flex flex-col gap-2 border-t bg-popover px-4 pt-3 pb-4">
           <Button
             type="submit"
             disabled={saving}
