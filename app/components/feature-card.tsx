@@ -139,7 +139,7 @@ export function FeatureCard({
           type="button"
           aria-label={title}
           onClick={onClick}
-          className="absolute inset-0 z-[5] rounded-[inherit] cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-offset-2"
+          className="absolute inset-0 z-[5] rounded-[inherit] cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
         />
       )}
       <div className={cn(base.icon, v.icon)} aria-hidden="true">
