@@ -148,237 +148,235 @@ export function ArtifactEdit(
       : "Add an app"
 
   return (
-    <div className="relative w-full">
-    <BrandTag className="absolute -top-3 left-0 z-10">
+  <div
+    ref={scrollRef}
+    tabIndex={-1}
+    className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 outline-none"
+  >
+    <BrandTag className="mb-3 self-start">
       {isEdit ? "Editing" : isTemplate ? "From registry" : "New app"}
     </BrandTag>
-    <div
-      ref={scrollRef}
-      tabIndex={-1}
-      className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 pt-8 outline-none"
-    >
-      <DialogTitle className="text-xl">{title}</DialogTitle>
-      <DialogDescription className="mt-1">
-        {isTemplate
-          ? "Name it and style it however you like. You can edit these later."
-          : "Store your application artifacts securely."}
-      </DialogDescription>
-      <Tabs value={previewTab} onValueChange={setPreviewTab} className="my-4 items-center">
-        <TabsList>
-          <TabsTrigger value="desktop">
-            <IconDeviceDesktop /> Desktop
-          </TabsTrigger>
-          <TabsTrigger value="mobile">
-            <IconDeviceMobile /> Mobile
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="desktop" className="w-full">
-          <div className="mx-auto w-full max-w-xs">
-            <FeatureCard
-              preview
-              title={name.trim() || "Your app"}
-              description={description}
+    <DialogTitle className="text-xl">{title}</DialogTitle>
+    <DialogDescription className="mt-1">
+      {isTemplate
+        ? "Name it and style it however you like. You can edit these later."
+        : "Store your application artifacts securely."}
+    </DialogDescription>
+    <Tabs value={previewTab} onValueChange={setPreviewTab} className="my-4 items-center">
+      <TabsList>
+        <TabsTrigger value="desktop">
+          <IconDeviceDesktop /> Desktop
+        </TabsTrigger>
+        <TabsTrigger value="mobile">
+          <IconDeviceMobile /> Mobile
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent value="desktop" className="w-full">
+        <div className="mx-auto w-full max-w-xs">
+          <FeatureCard
+            preview
+            title={name.trim() || "Your app"}
+            description={description}
+            icon={selectedIcon}
+            variant={Number(selectedVariant)}
+            color={selectedColor}
+          />
+        </div>
+      </TabsContent>
+      <TabsContent value="mobile" className="w-full">
+        <div className="mx-auto w-full max-w-[220px] rounded-[28px] border border-slate-700 bg-black p-4 shadow-[0_0_40px_rgba(37,99,235,.25)]">
+          <div className="grid grid-cols-3 gap-x-2 gap-y-4">
+            {[0, 1].map((i) => (
+              <PlaceholderTile key={i} />
+            ))}
+            <AppIcon
+              size="md"
+              showLabel
+              title={name.trim() || "My app"}
               icon={selectedIcon}
-              variant={Number(selectedVariant)}
               color={selectedColor}
+              variant={mobileVariant}
             />
+            {[2, 3, 4].map((i) => (
+              <PlaceholderTile key={i} />
+            ))}
           </div>
-        </TabsContent>
-        <TabsContent value="mobile" className="w-full">
-          <div className="mx-auto w-full max-w-[220px] rounded-[28px] border border-slate-700 bg-black p-4 shadow-[0_0_40px_rgba(37,99,235,.25)]">
-            <div className="grid grid-cols-3 gap-x-2 gap-y-4">
-              {[0, 1].map((i) => (
-                <PlaceholderTile key={i} />
-              ))}
-              <AppIcon
-                size="md"
-                showLabel
-                title={name.trim() || "My app"}
-                icon={selectedIcon}
-                color={selectedColor}
-                variant={mobileVariant}
+        </div>
+      </TabsContent>
+    </Tabs>
+    <form onSubmit={handleSubmit}>
+      <FieldGroup>
+        <FieldSet>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="artifact-edit-name">App Name</FieldLabel>
+              <Input
+                id="artifact-edit-name"
+                name="name"
+                placeholder="Evil Rabbit"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                disabled={isEdit}
+                required
               />
-              {[2, 3, 4].map((i) => (
-                <PlaceholderTile key={i} />
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-      <form onSubmit={handleSubmit}>
-        <FieldGroup>
-          <FieldSet>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="artifact-edit-name">App Name</FieldLabel>
-                <Input
-                  id="artifact-edit-name"
-                  name="name"
-                  placeholder="Evil Rabbit"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  disabled={isEdit}
-                  required
-                />
-                {isEdit && (
-                  <FieldDescription>
-                    Name is the app&apos;s storage namespace and can&apos;t be changed
-                  </FieldDescription>
-                )}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="artifact-edit-description">
-                  Description
-                </FieldLabel>
-                <Textarea
-                  id="artifact-edit-description"
-                  name="description"
-                  placeholder="What does this app do?"
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                />
-              </Field>
-              {isTemplate ? (
-                <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <IconPackageImport size={16} className="mt-0.5 shrink-0" />
-                  <span>
-                    This app is copied from the registry. Your copy is stored on this device, and keeps working even if the registry changes.
-                  </span>
-                </div>
-              ) : (
-              <Field>
-                <FileUpload
-                  label={isEdit ? "Replace HTML file (optional)" : "App File"}
-                  name="file"
-                  required={!isEdit}
-                  accept={[".html", "text/html"]}
-                  onFileChange={setFile}
-                />
+              {isEdit && (
                 <FieldDescription>
-                  Your app must be a self-contained HTML file which has no external dependencies.
-                  <span className="text-xs whitespace-nowrap mt-12">(no external CSS or JavaScript files)</span>
+                  Name is the app&apos;s storage namespace and can&apos;t be changed
                 </FieldDescription>
-              </Field>
               )}
-              <Field>
-                <FieldLabel htmlFor="artifact-edit-icon">Icon</FieldLabel>
-                <IconPicker
-                  id="artifact-edit-icon"
-                  value={selectedIcon}
-                  onChange={setSelectedIcon}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="artifact-edit-variant">Desktop card style</FieldLabel>
-                <Select value={selectedVariant} onValueChange={setSelectedVariant}>
-                  <SelectTrigger id="artifact-edit-variant" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {featureCardVariantNames.map((variantName, index) => (
-                      <SelectItem key={variantName} value={String(index + 1)}>
-                        {index + 1}. {variantName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="artifact-edit-color">Colour</FieldLabel>
-                <div className="flex flex-wrap items-center gap-2">
-                  {PRESET_COLORS.map((preset) => (
-                    <button
-                      key={preset}
-                      type="button"
-                      aria-label={`Use colour ${preset}`}
-                      aria-pressed={selectedColor.toLowerCase() === preset}
-                      onClick={() => setSelectedColor(preset)}
-                      style={{ backgroundColor: preset }}
-                      className={cn(
-                        "size-8 rounded-full border border-black/20 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                        selectedColor.toLowerCase() === preset &&
-                          "ring-2 ring-blue-500 ring-offset-2 ring-offset-background",
-                      )}
-                    />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="artifact-edit-description">
+                Description
+              </FieldLabel>
+              <Textarea
+                id="artifact-edit-description"
+                name="description"
+                placeholder="What does this app do?"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </Field>
+            {isTemplate ? (
+              <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                <IconPackageImport size={16} className="mt-0.5 shrink-0" />
+                <span>
+                  This app is copied from the registry. Your copy is stored on this device, and keeps working even if the registry changes.
+                </span>
+              </div>
+            ) : (
+            <Field>
+              <FileUpload
+                label={isEdit ? "Replace HTML file (optional)" : "App File"}
+                name="file"
+                required={!isEdit}
+                accept={[".html", "text/html"]}
+                onFileChange={setFile}
+              />
+              <FieldDescription>
+                Your app must be a self-contained HTML file which has no external dependencies.
+                <span className="text-xs whitespace-nowrap mt-12">(no external CSS or JavaScript files)</span>
+              </FieldDescription>
+            </Field>
+            )}
+            <Field>
+              <FieldLabel htmlFor="artifact-edit-icon">Icon</FieldLabel>
+              <IconPicker
+                id="artifact-edit-icon"
+                value={selectedIcon}
+                onChange={setSelectedIcon}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="artifact-edit-variant">Desktop card style</FieldLabel>
+              <Select value={selectedVariant} onValueChange={setSelectedVariant}>
+                <SelectTrigger id="artifact-edit-variant" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {featureCardVariantNames.map((variantName, index) => (
+                    <SelectItem key={variantName} value={String(index + 1)}>
+                      {index + 1}. {variantName}
+                    </SelectItem>
                   ))}
-                  <Input
-                    id="artifact-edit-color"
-                    type="color"
-                    className="h-8 w-12 p-1"
-                    value={selectedColor}
-                    onChange={(event) => setSelectedColor(event.target.value)}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="artifact-edit-color">Colour</FieldLabel>
+              <div className="flex flex-wrap items-center gap-2">
+                {PRESET_COLORS.map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    aria-label={`Use colour ${preset}`}
+                    aria-pressed={selectedColor.toLowerCase() === preset}
+                    onClick={() => setSelectedColor(preset)}
+                    style={{ backgroundColor: preset }}
+                    className={cn(
+                      "size-8 rounded-full border border-black/20 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                      selectedColor.toLowerCase() === preset &&
+                        "ring-2 ring-blue-500 ring-offset-2 ring-offset-background",
+                    )}
                   />
-                </div>
-              </Field>
-              <Field>
-                <FieldLabel id="artifact-edit-mobile-label">Mobile icon style</FieldLabel>
-                <div
-                  role="radiogroup"
-                  aria-labelledby="artifact-edit-mobile-label"
-                  className="grid grid-cols-3 gap-2"
-                >
-                  {appIconVariantNames.map((variantName, index) => {
-                    const n = index + 1
-                    const checked = mobileVariant === n
-                    return (
-                      <button
-                        key={variantName}
-                        type="button"
-                        role="radio"
-                        aria-checked={checked}
-                        onClick={() => {
-                          setMobileVariant(n)
-                          setPreviewTab("mobile")
-                        }}
-                        className={cn(
-                          "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                          checked ? "bg-blue-50 ring-2 ring-blue-500" : "hover:bg-muted",
-                        )}
-                      >
-                        <span className="flex w-full justify-center rounded-lg bg-black p-2">
-                          <AppIcon
-                            size="sm"
-                            variant={n}
-                            icon={selectedIcon}
-                            color={selectedColor}
-                            title={name.trim() || "My app"}
-                          />
-                        </span>
-                        {variantName}
-                      </button>
-                    )
-                  })}
-                </div>
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-          {error && (
-            <div
-              role="alert"
-              className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-[11px] text-red-400"
-            >
-              <IconAlertHexagon size={16} className="shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-          <div className="flex flex-col gap-2">
-            <Button
-              type="submit"
-              disabled={saving}
-              className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
-            >
-              {saving ? <Spinner /> : isEdit ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
-              {isEdit ? "Save changes" : isTemplate ? "Add to my apps" : "Add app"}
-            </Button>
-            <DialogClose asChild>
-              <Button variant="ghost" type="button" className="w-full p-5">
-                Cancel
-              </Button>
-            </DialogClose>
+                ))}
+                <Input
+                  id="artifact-edit-color"
+                  type="color"
+                  className="h-8 w-12 p-1"
+                  value={selectedColor}
+                  onChange={(event) => setSelectedColor(event.target.value)}
+                />
+              </div>
+            </Field>
+            <Field>
+              <FieldLabel id="artifact-edit-mobile-label">Mobile icon style</FieldLabel>
+              <div
+                role="radiogroup"
+                aria-labelledby="artifact-edit-mobile-label"
+                className="grid grid-cols-3 gap-2"
+              >
+                {appIconVariantNames.map((variantName, index) => {
+                  const n = index + 1
+                  const checked = mobileVariant === n
+                  return (
+                    <button
+                      key={variantName}
+                      type="button"
+                      role="radio"
+                      aria-checked={checked}
+                      onClick={() => {
+                        setMobileVariant(n)
+                        setPreviewTab("mobile")
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                        checked ? "bg-blue-50 ring-2 ring-blue-500" : "hover:bg-muted",
+                      )}
+                    >
+                      <span className="flex w-full justify-center rounded-lg bg-black p-2">
+                        <AppIcon
+                          size="sm"
+                          variant={n}
+                          icon={selectedIcon}
+                          color={selectedColor}
+                          title={name.trim() || "My app"}
+                        />
+                      </span>
+                      {variantName}
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+          </FieldGroup>
+        </FieldSet>
+        {error && (
+          <div
+            role="alert"
+            className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-[11px] text-red-400"
+          >
+            <IconAlertHexagon size={16} className="shrink-0" />
+            <span>{error}</span>
           </div>
-        </FieldGroup>
-      </form>
-    </div>
-    </div>
+        )}
+        <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t bg-white px-4 pt-3 pb-4">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
+          >
+            {saving ? <Spinner /> : isEdit ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
+            {isEdit ? "Save changes" : isTemplate ? "Add to my apps" : "Add app"}
+          </Button>
+          <DialogClose asChild>
+            <Button variant="ghost" type="button" className="w-full p-5">
+              Cancel
+            </Button>
+          </DialogClose>
+        </div>
+      </FieldGroup>
+    </form>
+  </div>
   )
 }
