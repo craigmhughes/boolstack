@@ -143,9 +143,9 @@ export function ArtifactEdit(
   <div
     ref={scrollRef}
     tabIndex={-1}
-    className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 outline-none"
+    className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 outline-none md:max-h-[92dvh]"
   >
-    <BrandTag className="mb-3 self-start">
+    <BrandTag className="mb-3 self-start md:mb-2">
       {isEdit ? "Editing" : isTemplate ? "From registry" : "New app"}
     </BrandTag>
     <DialogTitle className="text-xl">{title}</DialogTitle>
@@ -156,9 +156,9 @@ export function ArtifactEdit(
     </DialogDescription>
     <form
       onSubmit={handleSubmit}
-      className="mt-4 flex flex-col gap-4 md:grid md:grid-cols-2 md:items-start md:gap-6"
+      className="mt-4 flex flex-col gap-4 md:mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6"
     >
-      <FieldGroup className="max-md:contents md:flex md:flex-col md:gap-4">
+      <FieldGroup className="max-md:contents md:flex md:flex-col md:gap-3">
         <Field>
           <FieldLabel htmlFor="artifact-edit-name">App Name</FieldLabel>
           <Input
@@ -219,7 +219,7 @@ export function ArtifactEdit(
           />
         </Field>
       </FieldGroup>
-      <FieldGroup className="max-md:contents md:flex md:flex-col md:gap-4">
+      <FieldGroup className="max-md:contents md:flex md:flex-col md:gap-3">
         <Tabs value={previewTab} onValueChange={setPreviewTab} className="my-4 items-center max-md:order-first md:my-0">
           <TabsList>
             <TabsTrigger value="desktop">
@@ -230,7 +230,7 @@ export function ArtifactEdit(
             </TabsTrigger>
           </TabsList>
           <TabsContent value="desktop" className="w-full">
-            <div className="mx-auto w-full max-w-xs">
+            <div className="mx-auto w-full max-w-xs md:h-[136px] md:overflow-hidden">
               <FeatureCard
                 preview
                 title={name.trim() || "Your app"}
@@ -238,11 +238,13 @@ export function ArtifactEdit(
                 icon={selectedIcon}
                 variant={Number(selectedVariant)}
                 color={selectedColor}
+                className="md:origin-top md:scale-[0.52]"
               />
             </div>
           </TabsContent>
           <TabsContent value="mobile" className="w-full">
-            <div className="mx-auto w-full max-w-[220px] rounded-[28px] border border-slate-700 bg-black p-4 shadow-[0_0_40px_rgba(37,99,235,.25)]">
+            <div className="mx-auto w-full max-w-[220px] md:h-[136px] md:max-w-none md:overflow-hidden">
+            <div className="mx-auto w-full max-w-[220px] rounded-[28px] border border-slate-700 bg-black p-4 shadow-[0_0_40px_rgba(37,99,235,.25)] md:origin-top md:scale-[0.68]">
               <div className="grid grid-cols-3 gap-x-2 gap-y-4">
                 {[0, 1].map((i) => (
                   <PlaceholderTile key={i} />
@@ -259,6 +261,7 @@ export function ArtifactEdit(
                   <PlaceholderTile key={i} />
                 ))}
               </div>
+            </div>
             </div>
           </TabsContent>
         </Tabs>
@@ -294,7 +297,7 @@ export function ArtifactEdit(
           <div
             role="radiogroup"
             aria-labelledby="artifact-edit-variant-label"
-            className="grid grid-cols-3 gap-2 md:grid-cols-4"
+            className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-1.5"
           >
             {featureCardVariantNames.map((variantName, index) => {
               const n = index + 1
@@ -311,15 +314,15 @@ export function ArtifactEdit(
                     setPreviewTab("desktop")
                   }}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:p-0.5",
                     checked ? "bg-blue-500/15 ring-2 ring-blue-500" : "hover:bg-muted",
                   )}
                 >
-                  <span className="flex w-full justify-center rounded-lg bg-slate-900 p-2">
-                    <span className="relative h-[92px] w-full overflow-hidden rounded-md">
+                  <span className="flex w-full justify-center rounded-lg bg-slate-900 p-2 md:p-0.5">
+                    <span className="relative h-[92px] w-full overflow-hidden rounded-md md:h-[68px]">
                       <span
                         aria-hidden
-                        className="pointer-events-none absolute left-1/2 top-1/2 w-[320px] -translate-x-1/2 -translate-y-1/2 scale-[0.25]"
+                        className="pointer-events-none absolute left-1/2 top-1/2 w-[320px] -translate-x-1/2 -translate-y-1/2 scale-[0.25] md:scale-[0.2]"
                       >
                         <FeatureCard
                           preview
@@ -343,7 +346,7 @@ export function ArtifactEdit(
           <div
             role="radiogroup"
             aria-labelledby="artifact-edit-mobile-label"
-            className="grid grid-cols-3 gap-2"
+            className="grid grid-cols-3 gap-2 min-[940px]:grid-cols-6 min-[940px]:gap-1"
           >
             {appIconVariantNames.map((variantName, index) => {
               const n = index + 1
@@ -359,11 +362,11 @@ export function ArtifactEdit(
                     setPreviewTab("mobile")
                   }}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50 min-[940px]:p-0.5",
                     checked ? "bg-blue-500/15 ring-2 ring-blue-500" : "hover:bg-muted",
                   )}
                 >
-                  <span className="flex w-full justify-center rounded-lg bg-black p-2">
+                  <span className="flex w-full justify-center rounded-lg bg-black p-2 min-[940px]:p-0">
                     <AppIcon
                       size="sm"
                       variant={n}
@@ -388,17 +391,17 @@ export function ArtifactEdit(
           <span>{error}</span>
         </div>
       )}
-      <div className="sticky -bottom-4 -mx-4 flex flex-col gap-2 border-t bg-popover px-4 pt-3 pb-4 md:col-span-2">
+      <div className="sticky -bottom-4 -mx-4 flex flex-col gap-2 border-t bg-popover px-4 pt-3 pb-4 md:col-span-2 md:flex-row md:gap-3">
         <Button
           type="submit"
           disabled={saving}
-          className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
+          className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600 md:h-11 md:flex-1 md:p-0"
         >
           {saving ? <Spinner /> : isEdit ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
           {isEdit ? "Save changes" : isTemplate ? "Add to my apps" : "Add app"}
         </Button>
         <DialogClose asChild>
-          <Button variant="ghost" type="button" className="w-full p-5">
+          <Button variant="ghost" type="button" className="w-full p-5 md:h-11 md:flex-1 md:p-0">
             Cancel
           </Button>
         </DialogClose>
