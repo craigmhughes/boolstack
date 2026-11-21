@@ -73,7 +73,9 @@ export default function Home() {
         grainOpacity={0.15}
         className="!fixed inset-0 -z-10 bg-black min-h-0 h-full w-full"
       />
-      <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
+      <div inert={registryOpen} className="contents">
+        <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
+      </div>
       <div className={
         cx(
           "fixed h-full w-full flex justify-center items-center",
