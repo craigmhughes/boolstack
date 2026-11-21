@@ -43,8 +43,8 @@ export async function insertArtifact(
   input: { namespace: string; htmlfile: string } & ArtifactTheme,
 ): Promise<void> {
   await db.query(
-    "INSERT INTO artifacts (Namespace, HtmlFile, Icon, Variant, Color, Description) VALUES ($1, $2, $3, $4, $5, $6)",
-    [input.namespace, input.htmlfile, input.icon, input.variant, input.color, input.description],
+    "INSERT INTO artifacts (Namespace, HtmlFile, Icon, Variant, Color, Description, Created_At) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+    [input.namespace, input.htmlfile, input.icon, input.variant, input.color, input.description, Date.now()],
   );
 }
 

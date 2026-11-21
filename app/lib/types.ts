@@ -5,6 +5,7 @@ export type Artifact = {
   variant: number;
   color: string;
   description: string;
+  created_at: number;
 };
 
 export type StoredValue = {

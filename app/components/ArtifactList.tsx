@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useState } from "react";
+import { useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { useGateway } from "./ClientDatabaseGateway";
 import { useLiveQuery } from "@electric-sql/pglite-react";
 import { Artifact } from "../lib/types";
@@ -20,8 +20,53 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BrandDivider, BrandHeading, BrandTag } from "./brand";
 import { IconAlertHexagon, IconUpload } from "@tabler/icons-react";
 
+const COLUMN_QUERIES = [
+  "(min-width: 1536px)",
+  "(min-width: 1024px)",
+  "(min-width: 640px)",
+];
+
+function subscribeColumns(cb: () => void) {
+  const mqs = COLUMN_QUERIES.map((q) => window.matchMedia(q));
+  mqs.forEach((m) => m.addEventListener("change", cb));
+  return () => mqs.forEach((m) => m.removeEventListener("change", cb));
+}
+
+function getColumnCount() {
+  if (window.matchMedia(COLUMN_QUERIES[0]).matches) return 4;
+  if (window.matchMedia(COLUMN_QUERIES[1]).matches) return 3;
+  if (window.matchMedia(COLUMN_QUERIES[2]).matches) return 2;
+  return 1;
+}
+
+/** Column count matching the breakpoints 640 / 1024 / 1536. SSR default is 1. */
+function useColumnCount() {
+  return useSyncExternalStore(subscribeColumns, getColumnCount, () => 1);
+}
+
+/** Approximate relative card height: slimline (variant 4) is short. */
+function cardWeight(variant: number) {
+  return variant === 4 ? 1 : 2;
+}
+
+/** Distribute items in order, each into the currently shortest column. */
+function distribute(rows: Artifact[], columns: number): Artifact[][] {
+  const cols: Artifact[][] = Array.from({ length: columns }, () => []);
+  const heights = new Array<number>(columns).fill(0);
+  for (const row of rows) {
+    let target = 0;
+    for (let i = 1; i < columns; i++) {
+      if (heights[i] < heights[target]) target = i;
+    }
+    cols[target].push(row);
+    heights[target] += cardWeight(row.variant);
+  }
+  return cols;
+}
+
 /**
- * List view for all stored artifacts, laid out as a CSS-columns masonry grid.
+ * List view for all stored artifacts, newest first, laid out as a
+ * row-ordered masonry (flex columns filled shortest-first).
  */
 export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
   const { db } = useGateway();
@@ -30,6 +75,7 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
   const [deleting, setDeleting] = useState<Artifact | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
+  const columnCount = useColumnCount();
   const result = useLiveQuery<Artifact>(`
     SELECT
       namespace,
@@ -37,10 +83,16 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
       icon,
       variant,
       color,
-      description
+      description,
+      created_at
     FROM artifacts
-    ORDER BY namespace
+    ORDER BY created_at DESC, namespace ASC
   `);
+
+  const columns = useMemo(
+    () => distribute(result?.rows ?? [], columnCount),
+    [result, columnCount],
+  );
 
   const confirmDelete = async () => {
     if (!db || !deleting) {
@@ -109,20 +161,23 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
               {count} {count === 1 ? "app" : "apps"}
             </BrandTag>
           </div>
-          <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4">
-            {result.rows.map((artifact) => (
-              <div key={artifact.namespace} className="mb-4 break-inside-avoid">
-                <FeatureCard
-                  className="w-full"
-                  title={artifact.namespace}
-                  description={artifact.description}
-                  icon={artifact.icon}
-                  variant={artifact.variant}
-                  color={artifact.color}
-                  onClick={() => setActiveArtifact(artifact)}
-                  onEdit={() => setEditing(artifact)}
-                  onDelete={() => setDeleting(artifact)}
-                />
+          <div className="flex gap-4 items-start">
+            {columns.map((col, ci) => (
+              <div key={ci} className="flex-1 min-w-0 flex flex-col gap-4">
+                {col.map((artifact) => (
+                  <FeatureCard
+                    key={artifact.namespace}
+                    className="w-full"
+                    title={artifact.namespace}
+                    description={artifact.description}
+                    icon={artifact.icon}
+                    variant={artifact.variant}
+                    color={artifact.color}
+                    onClick={() => setActiveArtifact(artifact)}
+                    onEdit={() => setEditing(artifact)}
+                    onDelete={() => setDeleting(artifact)}
+                  />
+                ))}
               </div>
             ))}
           </div>
