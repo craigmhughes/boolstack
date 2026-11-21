@@ -88,9 +88,7 @@ export function ArtifactView({children}: {children: React.ReactNode}) {
             title={activeArtifact.namespace} 
             className="w-full h-full flex-1" />
         </div>
-      ) : (
-        <p>No active artifact selected.</p>
-      )}
+      ) : null}
       {children}
     </ArtifactViewContext.Provider>
   );

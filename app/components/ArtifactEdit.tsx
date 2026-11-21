@@ -14,11 +14,23 @@ import {
 import { Input } from "@/components/ui/input"
 import { useGateway } from "./ClientDatabaseGateway"
 import { backup } from "../lib/db"
-
-const emojis = ["🚀", "💡", "🎨", "🧰", "📦", "🧪", "🎵", "🌱", "⭐", "🔥"]
+import { FileUploadFieldInput } from "./opensourceui/FileUpload"
+import { DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import { IconPicker } from "./IconPicker"
+import { FileUpload } from "./file-upload"
+import { featureCardVariantNames } from "./feature-card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 export function ArtifactEdit() {
-  const [selectedEmoji, setSelectedEmoji] = useState(emojis[0])
+  const [selectedIcon, setSelectedIcon] = useState("IconRocket")
+  const [selectedVariant, setSelectedVariant] = useState("1")
+  const [selectedColor, setSelectedColor] = useState("#ff5003")
   const { db } = useGateway()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -33,8 +45,8 @@ export function ArtifactEdit() {
     const htmlContent = file instanceof File ? await file.text() : ""
 
     db.query(
-      "INSERT INTO artifacts (Namespace, HtmlFile, Icon) VALUES ($1, $2, $3)",
-      [formData.get("name"), htmlContent, selectedEmoji],
+      "INSERT INTO artifacts (Namespace, HtmlFile, Icon, Variant, Color) VALUES ($1, $2, $3, $4, $5)",
+      [formData.get("name"), htmlContent, selectedIcon, Number(selectedVariant), selectedColor],
     ).catch((error) => {
       console.error("Error saving artifact:", error)
     }).finally(() => {
@@ -43,14 +55,14 @@ export function ArtifactEdit() {
   }
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full p-4 flex flex-col">
+      <DialogTitle>New Artifact</DialogTitle>
+      <DialogDescription>
+        Store your application artifacts securely.
+      </DialogDescription>
       <form onSubmit={handleSubmit}>
         <FieldGroup>
           <FieldSet>
-            <FieldLegend>New Artifact</FieldLegend>
-            <FieldDescription>
-              Store your application artifacts securely.
-            </FieldDescription>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="artifact-edit-name">
@@ -67,58 +79,62 @@ export function ArtifactEdit() {
                 <FieldLabel htmlFor="artifact-edit-file">
                   App File
                 </FieldLabel>
-                <Input
-                  id="artifact-edit-file"
-                  name="file"
-                  placeholder="1234 5678 9012 3456"
-                  required
-                  type="file"
-                  accept=".html,text/html"
+                <FileUpload
+                  label="Upload HTML file"
+                  accept={[".html", "text/html"]}
                 />
                 <FieldDescription>
-                  Your app must be a self-contained HTML file.
+                  Your app must be a self-contained HTML file which has no external dependencies. 
+                  <span className="text-xs whitespace-nowrap mt-12">(no external CSS or JavaScript files)</span>
                 </FieldDescription>
               </Field>
               <Field>
                 <FieldLabel htmlFor="artifact-edit-icon">
                   Icon
                 </FieldLabel>
-                <Input
+                <IconPicker
                   id="artifact-edit-icon"
-                  name="icon"
-                  required
-                  readOnly
-                  value={selectedEmoji}
+                  value={selectedIcon}
+                  onChange={setSelectedIcon}
                 />
-                <div
-                  aria-label="Choose an artifact icon"
-                  className="grid grid-cols-5 gap-2 pt-2"
-                  role="group"
-                >
-                  {emojis.map((emoji) => (
-                    <Button
-                      aria-label={`Choose ${emoji} as the artifact icon`}
-                      aria-pressed={selectedEmoji === emoji}
-                      key={emoji}
-                      onClick={() => setSelectedEmoji(emoji)}
-                      size="icon"
-                      type="button"
-                      variant={selectedEmoji === emoji ? "secondary" : "outline"}
-                    >
-                      <span aria-hidden="true" className="text-lg">
-                        {emoji}
-                      </span>
-                    </Button>
-                  ))}
-                </div>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="artifact-edit-variant">
+                  Style
+                </FieldLabel>
+                <Select value={selectedVariant} onValueChange={setSelectedVariant}>
+                  <SelectTrigger id="artifact-edit-variant" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {featureCardVariantNames.map((name, index) => (
+                      <SelectItem key={name} value={String(index + 1)}>
+                        {index + 1}. {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="artifact-edit-color">
+                  Colour
+                </FieldLabel>
+                <Input
+                  id="artifact-edit-color"
+                  type="color"
+                  value={selectedColor}
+                  onChange={(event) => setSelectedColor(event.target.value)}
+                />
               </Field>
             </FieldGroup>
           </FieldSet>
           <Field orientation="horizontal">
             <Button type="submit">Submit</Button>
-            <Button variant="outline" type="button">
-              Cancel
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline" type="button">
+                Cancel
+              </Button>
+            </DialogClose>
           </Field>
         </FieldGroup>
       </form>

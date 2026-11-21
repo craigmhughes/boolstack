@@ -114,7 +114,7 @@ export function StoragePersistence({
   };
 
   const stepperContent = [  
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 max-md:w-full">
       <Button
         className={
           cx(
@@ -126,7 +126,7 @@ export function StoragePersistence({
         onClick={handleStep1}
       >
         <IconFolderSymlink size={16} />
-        Select a folder to store/import your backup
+        <span className="min-w-0 whitespace-normal break-words max-md:text-xs">Select a folder to store/import your backup</span>
       </Button>
       <p className="text-xs leading-6 tracking-wide text-left">
         Your backup file <Kbd className="px-2 border mx-1 text-[11px] text-slate-400">artifact-hub-backup.tar.gz</Kbd> will be created in the selected folder if it does not already exist.
@@ -279,10 +279,10 @@ export function StoragePersistence({
                 )
               }
             >
-              <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full h-full max-w-screen-sm mx-auto">
+              <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full h-full max-w-screen-sm max-md:max-w-[340px] mx-auto">
                 <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full xl:justify-center">
                   <div className="flex-1 max-h-[180px] flex items-end justify-end">
-                    <div className="font-medium tracking-tighter flex items-end gap-2">
+                    <div className="font-medium tracking-tighter flex items-end gap-2 [@media(max-height:768px)]:mb-6">
                       <span className="flex items-center justify-center relative -top-0.5">
                         <Grid
                           size="20"
@@ -294,13 +294,13 @@ export function StoragePersistence({
                     </div>
                   </div>
                   <div className="flex flex-col items-start justify-center gap-8 w-full mb-10">
-                    <h1 className="font-medium text-4xl tracking-tight">Your apps, your way. Start building today.</h1>
+                    <h1 className="font-medium text-4xl tracking-tight [@media(max-height:768px)]:hidden">Your apps, your way. Start building today.</h1>
                     <Card className="w-full relative overflow-visible">
                       <Badge variant="secondary" className="absolute -top-3 left-0 border border-blue-800 bg-blue-950 text-blue-400 px-3 py-3 text-[11px] rounded-sm">
                         Initial Set-up
                       </Badge>
                       <CardContent className="p-4 pt-8 relative">
-                        <div className="w-[calc(100%_-_6rem)] mx-auto flex items-center justify-center gap-10">
+                        <div className="w-[calc(100%_-_2rem)] mx-auto flex items-center justify-center gap-10">
                           <Stepper
                             className="flex flex-col items-center justify-center gap-10"
                             value={currentStep}
@@ -375,9 +375,11 @@ export function StoragePersistence({
                         Continue without a backup
                         <IconArrowRight size={16} className="stroke-[1.25px] relative top-[1px]" />
                       </Button>
-                      <Badge variant="destructive" className="border border-red-900 bg-red-950! py-3 px-4 text-[11px]">
-                        <IconAlertHexagon className="relative -left-0.5" />
-                        Without a backup file, your data will be <strong>lost</strong> if you clear your browser storage.
+                      <Badge variant="destructive" className="h-auto! whitespace-normal! border border-red-900 bg-red-950! py-3 px-4 text-[11px]">
+                        <IconAlertHexagon className="relative -left-0.5 max-md:scale-150" />
+                        <span>
+                          Without a backup file, your data will be <strong>lost</strong> if you clear your browser storage.
+                        </span>
                       </Badge>
                     </div>
                   </motion.div>
@@ -394,7 +396,7 @@ export function StoragePersistence({
             initial={{ opacity: 0, scale: 0.6, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.6, y: 20 }}
-            className="absolute bottom-0 right-0 m-4 z-[100]"
+            className="absolute bottom-0 left-0 m-4 z-10"
           >
             <Button
               onClick={() => setMinimized(false)}

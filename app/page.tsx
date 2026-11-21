@@ -9,6 +9,13 @@ import { restoreBackupFile } from "./lib/db";
 import { cx } from "class-variance-authority";
 import { Grid } from 'ldrs/react'
 import 'ldrs/react/Grid.css'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button";
+import { IconPlus } from "@tabler/icons-react";
 
 const APP_REVEAL_DELAY = 1000;
 
@@ -59,7 +66,7 @@ export default function Home() {
         cx(
           "fixed h-full w-full bg-zinc-50 dark:bg-black flex justify-center items-center",
           !showApp && "opacity-100",
-          showApp && "opacity-0 transition-opacity duration-500"
+          showApp && "opacity-0 transition-opacity duration-500 pointer-events-none"
         )
       } >
         <div className={cx(
@@ -84,7 +91,16 @@ export default function Home() {
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
             <ArtifactView>
-              <ArtifactEdit />
+              <Dialog>
+                <DialogTrigger asChild className="cursor-pointer">
+                  <Button className="py-7 px-10 rounded-full bg-green-600 fixed bottom-3 right-3">
+                    <IconPlus className="size-6 stroke-2" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <ArtifactEdit />
+                </DialogContent>
+              </Dialog>
               <ArtifactList />
             </ArtifactView>
           </ClientDatabaseGateway>

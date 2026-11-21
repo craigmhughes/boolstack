@@ -63,8 +63,14 @@ export default function ClientDatabaseGateway({ children, backupFile }: { childr
         CREATE TABLE IF NOT EXISTS artifacts (
           Namespace TEXT PRIMARY KEY,
           HtmlFile TEXT NOT NULL,
-          Icon TEXT NOT NULL
+          Icon TEXT NOT NULL,
+          Variant INTEGER NOT NULL DEFAULT 1,
+          Color TEXT NOT NULL DEFAULT '#ff5003'
         );
+
+        -- Existing databases already have the table without these columns
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Variant INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Color TEXT NOT NULL DEFAULT '#ff5003';
 
         -- NAMESPACED LOCAL STORAGE
         CREATE TABLE IF NOT EXISTS namespaced_local_storage (

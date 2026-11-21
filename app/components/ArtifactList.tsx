@@ -4,9 +4,10 @@ import { useContext, useEffect } from "react";
 import { useGateway } from "./ClientDatabaseGateway";
 import { useLiveQuery } from "@electric-sql/pglite-react";
 import { Artifact } from "../lib/types";
-import { Button } from "@/components/ui/button";
 import { ArtifactViewContext } from "./ArtifactView";
 import { backup } from "../lib/db";
+import { ArtifactIcon } from "./IconPicker";
+import { FeatureCard } from "./feature-card";
 
 /**
  * List view for all stored artifacts.
@@ -33,7 +34,9 @@ export function ArtifactList() {
     SELECT
       namespace,
       htmlfile,
-      icon
+      icon,
+      variant,
+      color
     FROM artifacts
     ORDER BY namespace
   `);
@@ -60,26 +63,36 @@ export function ArtifactList() {
 
   return (
     <div>
-      {result.rows.map((artifact) => (
-        <div key={artifact.namespace}>
-          <p>{artifact.icon} {artifact.namespace}</p>
-          <Button
-            type="button"
+      <div className="grid grid-cols-1 gap-4">
+        {result.rows.map((artifact) => (
+          <FeatureCard
+            key={artifact.namespace}
+            title={artifact.namespace}
+            description={artifact.namespace}
+            icon={artifact.icon}
+            variant={artifact.variant}
+            color={artifact.color}
             onClick={() => setActiveArtifact(artifact)}
-          >
-            View Artifact
-          </Button>
-          <Button
-            type="button"
-            onClick={async () => {
+            onDelete={async () => {
               const shouldDelete = await confirm(`Are you sure you want to delete artifact: ${artifact.namespace}?`);
               shouldDelete && deleteArtifact(artifact.namespace);
             }}
-          >
-            Delete Artifact
-          </Button>
-        </div>
-      ))}
+          />
+        ))}
+        {new Array(8).fill(null).map((_, index) => (
+          <FeatureCard
+            key={index}
+            title={`Feature Card ${index + 1}`}
+            description="Feature Card Description"
+            icon="star"
+            variant={index + 1}
+            onClick={() => console.log(`Feature Card ${index + 1} clicked`)}
+            onDelete={async () => {}}
+          />
+        ))}
+        
+      </div>
+      
     </div>
   );
 }
