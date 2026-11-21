@@ -1,7 +1,7 @@
 {
-  "name": "Artifact Hub",
-  "short_name": "ArtifactHub",
-  "description": "A hub for all your artifacts.",
+  "name": "boolstack",
+  "short_name": "boolstack",
+  "description": "Local-first admin panel for your personal HTML apps.",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

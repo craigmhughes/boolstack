@@ -129,7 +129,7 @@ export function StoragePersistence({
         <span className="min-w-0 whitespace-normal break-words max-md:text-xs">Select a folder to store/import your backup</span>
       </Button>
       <p className="text-xs leading-6 tracking-wide text-left">
-        Your backup file <Kbd className="px-2 border mx-1 text-[11px] text-slate-400">artifact-hub-backup.tar.gz</Kbd> will be created in the selected folder if it does not already exist.
+        Your backup file <Kbd className="px-2 border mx-1 text-[11px] text-slate-400">backup.tar.gz</Kbd> will be created in the selected folder if it does not already exist.
       </p>
     </div>,
     <div className="flex flex-col gap-3 items-center w-full">
