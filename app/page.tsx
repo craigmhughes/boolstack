@@ -12,12 +12,18 @@ import 'ldrs/react/Grid.css'
 import {
   Dialog,
   DialogContent,
-  DialogTrigger,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button";
 import { GradientBackground } from "./components/GradientBackground";
 import { BrandLogo } from "./components/brand/BrandLogo";
-import { IconPlus } from "@tabler/icons-react";
+import { RegistryBrowser } from "./components/RegistryBrowser";
+import { IconPackageImport, IconPlus } from "@tabler/icons-react";
 
 const APP_REVEAL_DELAY = 1000;
 
@@ -29,6 +35,7 @@ export default function Home() {
 
   const [introMinimized, setIntroMinimized] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [registryOpen, setRegistryOpen] = useState(false);
   const gridVisible = showGrid || introMinimized;
 
   const handleInitialize = async () => {
@@ -98,22 +105,48 @@ export default function Home() {
         </header>
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
-            <ArtifactView>
-              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                <DialogTrigger asChild className="cursor-pointer">
-                  <Button
-                    aria-label="Add app"
-                    className="size-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_40px_rgba(37,99,235,.45)] fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
+            <div inert={registryOpen} className="contents">
+              <ArtifactView>
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      aria-label="Add app"
+                      className="group size-14 cursor-pointer rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_40px_rgba(37,99,235,.45)] fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
+                    >
+                      <IconPlus className="size-6 stroke-2 transition-transform group-data-[state=open]:rotate-45" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="top"
+                    align="end"
+                    sideOffset={12}
+                    className="min-w-[220px] rounded-xl border border-slate-800 bg-slate-950 p-1 text-slate-100 shadow-[0_0_40px_rgba(37,99,235,.25)]"
                   >
-                    <IconPlus className="size-6 stroke-2" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <ArtifactEdit key="new" onSaved={() => setCreateOpen(false)} />
-                </DialogContent>
-              </Dialog>
-              <ArtifactList onCreate={() => setCreateOpen(true)} />
-            </ArtifactView>
+                    <DropdownMenuItem
+                      onSelect={() => setCreateOpen(true)}
+                      className="gap-3 px-3 py-2.5 rounded-md text-sm cursor-pointer focus:bg-slate-800 focus:text-slate-100 [&_svg]:size-4 [&_svg]:text-slate-400"
+                    >
+                      <IconPlus />
+                      New app
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => setRegistryOpen(true)}
+                      className="gap-3 px-3 py-2.5 rounded-md text-sm cursor-pointer focus:bg-slate-800 focus:text-slate-100 [&_svg]:size-4 [&_svg]:text-slate-400"
+                    >
+                      <IconPackageImport />
+                      Import from registry
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                  <DialogContent>
+                    <ArtifactEdit key="new" onSaved={() => setCreateOpen(false)} />
+                  </DialogContent>
+                </Dialog>
+                <ArtifactList onCreate={() => setCreateOpen(true)} />
+              </ArtifactView>
+            </div>
+            <RegistryBrowser open={registryOpen} onOpenChange={setRegistryOpen} />
           </ClientDatabaseGateway>
         )}
       </main>
