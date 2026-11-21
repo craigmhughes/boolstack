@@ -9,7 +9,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react"
 import { Slot } from "radix-ui"
@@ -241,19 +240,19 @@ function StepperTrigger({
   const id = `stepper-tab-${step}`
   const panelId = `stepper-panel-${step}`
 
-  // Register this trigger for keyboard navigation
-  const btnRef = useRef<HTMLButtonElement>(null)
+  // Register this trigger for keyboard navigation. The mounted node is kept in
+  // state (set via callback ref) rather than read from a ref during render.
+  const [btnNode, setBtnNode] = useState<HTMLButtonElement | null>(null)
   useEffect(() => {
-    if (btnRef.current) {
-      registerTrigger(btnRef.current)
+    if (btnNode) {
+      registerTrigger(btnNode)
     }
-  }, [btnRef.current])
+  }, [btnNode, registerTrigger])
 
   // Find our index among triggers for navigation
   const myIdx = useMemo(
-    () =>
-      triggerNodes.findIndex((n: HTMLButtonElement) => n === btnRef.current),
-    [triggerNodes, btnRef.current]
+    () => triggerNodes.findIndex((n: HTMLButtonElement) => n === btnNode),
+    [triggerNodes, btnNode]
   )
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
@@ -290,7 +289,7 @@ function StepperTrigger({
 
   return (
     <Comp
-      ref={btnRef}
+      ref={setBtnNode}
       role="tab"
       id={id}
       aria-selected={isSelected}
