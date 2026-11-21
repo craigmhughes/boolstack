@@ -49,7 +49,7 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
     icon: 'size-[76px] self-start rounded-[22px] [&_svg]:size-[38px] bg-black',
   },
   slimline: {
-    root: 'col-span-1 min-[561px]:col-span-2 min-h-[120px] min-[561px]:min-h-[122px] flex-row items-center gap-[18px] pr-[62px]',
+    root: 'col-span-1 min-[561px]:col-span-2 min-h-[120px] min-[561px]:min-h-[122px] flex-row items-center gap-[18px] pr-[112px]',
     icon: 'shrink-0 bg-black',
     description: 'mt-1.5',
     actions: 'top-1/2 -mt-3.5',
@@ -62,6 +62,7 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
   outlined: {
     root: 'border-[#101010] bg-[#fffaf2]',
     icon: 'border border-[#101010]/20 bg-(--card-accent) text-(--card-ink)',
+    actions: '[&_button]:text-[#1c1c1c] [&_button]:hover:text-[#1c1c1c]',
   },
   dark: {
     root: 'border-[#272727] bg-[#171717] text-[#f8f3eb] shadow-none',
@@ -73,10 +74,15 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
   minimal: {
     root: 'border-[#101010] bg-[#b8dfe0]',
     icon: 'size-[54px] rounded-[10px] [&_svg]:size-8 bg-(--card-accent) text-(--card-ink)',
+    actions: '[&_button]:text-[#1c1c1c] [&_button]:hover:text-[#1c1c1c]',
   },
 }
 
 const hoverLift = 'hover:-translate-y-1 hover:shadow-[0_9px_0_rgba(16,16,16,.14)]'
+
+// Edit/Delete buttons take the card's own ink and tint (currentColor), so they follow the theme.
+const actionButton =
+  'bg-[color-mix(in_srgb,currentColor_14%,transparent)] text-current hover:bg-[color-mix(in_srgb,currentColor_26%,transparent)] hover:text-current focus-visible:ring-current/40 [&_svg]:size-4'
 
 // WCAG relative luminance; supports #rgb and #rrggbb. Returns null if unparseable.
 function luminance(hex: string): number | null {
@@ -155,8 +161,9 @@ export function FeatureCard({
           {onEdit && (
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               size="icon-sm"
+              className={actionButton}
               aria-label={`Edit ${title}`}
               onClick={(event) => {
                 event.stopPropagation()
@@ -170,8 +177,9 @@ export function FeatureCard({
           {onDelete && (
             <Button
               type="button"
-              variant="secondary"
+              variant="ghost"
               size="icon-sm"
+              className={actionButton}
               aria-label={`Delete ${title}`}
               onClick={(event) => {
                 event.stopPropagation()
