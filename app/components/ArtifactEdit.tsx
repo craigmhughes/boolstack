@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -65,6 +65,15 @@ export function ArtifactEdit(
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { db } = useGateway()
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Radix focuses the first field on open and scrolls it into view, which
+  // starts the dialog scrolled down. Focus the scroll box itself first (without
+  // scrolling) so Radix sees focus already inside the dialog and leaves it be.
+  useEffect(() => {
+    scrollRef.current?.focus({ preventScroll: true })
+    scrollRef.current?.scrollTo({ top: 0 })
+  }, [])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -113,7 +122,11 @@ export function ArtifactEdit(
   return (
     <div className="relative w-full">
     <BrandTag className="absolute -top-3 left-0 z-10">{isEdit ? "Editing" : "New app"}</BrandTag>
-    <div className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 pt-8">
+    <div
+      ref={scrollRef}
+      tabIndex={-1}
+      className="flex max-h-[85dvh] w-full flex-col overflow-y-auto rounded-xl p-4 pt-8 outline-none"
+    >
       <DialogTitle className="text-xl">{title}</DialogTitle>
       <DialogDescription className="mt-1">
         Store your application artifacts securely.
