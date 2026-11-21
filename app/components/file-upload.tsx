@@ -11,6 +11,8 @@ type FileUploadProps = {
   accept?: string[]
   maxSizeMB?: number
   onFileChange?: (file: File | null) => void
+  name?: string
+  required?: boolean
 }
 
 const BYTES_PER_MB = 1024 * 1024
@@ -31,6 +33,8 @@ export function FileUpload({
   accept = ['.pdf', '.png', '.jpg', '.docx'],
   maxSizeMB = 500,
   onFileChange,
+  name,
+  required,
 }: FileUploadProps) {
   const inputId = useId()
   const descriptionId = useId()
@@ -61,6 +65,8 @@ export function FileUpload({
         ref={inputRef}
         id={inputId}
         type="file"
+        name={name}
+        required={required}
         accept={accept.join(',')}
         aria-describedby={descriptionId}
         className="peer sr-only"
