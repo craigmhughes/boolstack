@@ -360,7 +360,7 @@ export function ArtifactEdit(
             <span>{error}</span>
           </div>
         )}
-        <div className="sticky bottom-0 -mx-4 flex flex-col gap-2 border-t bg-white px-4 pt-3 pb-4">
+        <div className="sticky -bottom-4 -mx-4 flex flex-col gap-2 border-t bg-white px-4 pt-3 pb-4">
           <Button
             type="submit"
             disabled={saving}
