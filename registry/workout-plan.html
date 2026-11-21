@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workout Plan</title>
+<meta name="description" content="Strength program tracker for bench press and curls with a per-session log.">
+<meta name="boolstack:icon" content="IconBarbell">
+<meta name="boolstack:color" content="#7aa2ff">
+<meta name="boolstack:variant" content="1">
+<meta name="boolstack:mobile-variant" content="2">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #c8f04a;
+    --accent2: #f0a84a;
+    --text: #e8e4dc;
+    --muted: #6b6b6b;
+    --danger: #e05555;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Fraunces', Georgia, serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* HEADER */
+  header {
+    padding: 72px 0 48px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 10vw, 96px);
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    color: var(--text);
+  }
+
+  h1 span {
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 300;
+    font-size: 18px;
+    color: var(--muted);
+    margin-top: 20px;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  .header-meta {
+    display: flex;
+    gap: 32px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .meta-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .meta-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  /* TAB NAV */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-top: 48px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tab-nav::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 14px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* PANELS */
+  .panel { display: none; padding: 40px 0 80px; }
+  .panel.active { display: block; }
+
+  /* DAY CARD */
+  .day-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 32px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .day-card:nth-child(2) { animation-delay: 0.08s; }
+  .day-card:nth-child(3) { animation-delay: 0.16s; }
+
+  .day-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 24px 28px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+
+  .day-header:hover { background: var(--surface2); }
+
+  .day-label {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .day-tag {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .day-title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .toggle-icon {
+    font-family: 'DM Mono', monospace;
+    font-size: 18px;
+    color: var(--muted);
+    transition: transform 0.3s;
+  }
+
+  .day-card.open .toggle-icon { transform: rotate(45deg); }
+
+  .day-body {
+    display: none;
+    padding: 0 28px 28px;
+  }
+
+  .day-card.open .day-body { display: block; }
+
+  /* WARMUP NOTICE */
+  .warmup-notice {
+    background: #1a1f12;
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    margin: 24px 0 20px;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .warmup-notice strong {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .warmup-notice p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* EXERCISE ROW */
+  .exercise {
+    border-top: 1px solid var(--border);
+    padding: 22px 0;
+  }
+
+  .exercise:first-of-type { border-top: none; }
+
+  .exercise-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .exercise-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+
+  .exercise-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+
+  .badge-primary { background: #1c2310; color: var(--accent); border: 1px solid #2d3d1a; }
+  .badge-pull    { background: #1a1520; color: #b07ef0; border: 1px solid #2d2040; }
+  .badge-arm     { background: #1a1410; color: var(--accent2); border: 1px solid #3d2a10; }
+  .badge-assist  { background: #101820; color: #4ab8f0; border: 1px solid #102a3d; }
+
+  .exercise-stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 15px;
+    color: var(--text);
+  }
+
+  .exercise-note {
+    margin-top: 10px;
+    font-size: 13px;
+    font-style: italic;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+
+  .exercise-note b {
+    font-style: normal;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+
+  /* DIVIDER */
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 28px 0 4px;
+  }
+
+  /* PROGRESSION TABLE */
+  .prog-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+
+  .prog-table th {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prog-table td {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    padding: 13px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+
+  .prog-table tr:last-child td { border-bottom: none; }
+
+  .prog-table tr:hover td { background: var(--surface2); }
+
+  .prog-table td:last-child { color: var(--accent); }
+
+  /* NOTES PANEL */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 600px) {
+    .notes-grid { grid-template-columns: 1fr; }
+  }
+
+  .note-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 20px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .note-card:nth-child(2) { animation-delay: 0.06s; }
+  .note-card:nth-child(3) { animation-delay: 0.12s; }
+  .note-card:nth-child(4) { animation-delay: 0.18s; }
+
+  .note-card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+
+  .note-card p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .note-card p b {
+    color: var(--text);
+    font-style: italic;
+    font-weight: 300;
+  }
+
+  .warning-card {
+    background: #1a1010;
+    border: 1px solid #3d1a1a;
+    border-radius: 2px;
+    padding: 20px;
+    margin-top: 16px;
+    animation: fadeUp 0.4s ease 0.24s both;
+  }
+
+  .warning-card .note-card-title { color: var(--danger); }
+  .warning-card p { color: #a08080; }
+
+  /* TIMELINE */
+  .timeline {
+    margin-top: 8px;
+  }
+
+  .tl-item {
+    display: flex;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: baseline;
+  }
+
+  .tl-item:last-child { border-bottom: none; }
+
+  .tl-time {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 100px;
+  }
+
+  .tl-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+    font-style: italic;
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 24px 0;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  /* CHECKBOX TRACKER */
+  .tracker-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 20px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+
+  .tracker-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex: 1;
+  }
+
+  .day-checks {
+    display: flex;
+    gap: 8px;
+  }
+
+  .day-check {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .day-check:hover { border-color: var(--accent); color: var(--accent); }
+  .day-check.done { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div class="eyebrow">Revised Strength Program — v2</div>
+    <h1>BENCH<br><span>&</span> CURL</h1>
+    <p class="subtitle">A home program built around every limiting factor of the bench press, with arm work that supports rather than competes.</p>
+    <div class="header-meta">
+      <div class="meta-item">
+        <span class="meta-label">Frequency</span>
+        <span class="meta-value">3× / week</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Equipment</span>
+        <span class="meta-value">Barbell + DBs</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Goal</span>
+        <span class="meta-value">Bench Strength</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Duration</span>
+        <span class="meta-value">6–9 months</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('days')">Training Days</button>
+    <button class="tab-btn" onclick="switchTab('progression')">Progression</button>
+    <button class="tab-btn" onclick="switchTab('notes')">Coach Notes</button>
+    <button class="tab-btn" onclick="switchTab('tracker')">Weekly Tracker</button>
+  </nav>
+
+  <!-- DAYS PANEL -->
+  <div class="panel active" id="panel-days">
+
+    <!-- DAY A -->
+    <div class="day-card open" id="dayA">
+      <div class="day-header" onclick="toggleDay('dayA')">
+        <div class="day-label">
+          <span class="day-tag">Day A</span>
+          <span class="day-title">Heavy Bench + Pull Strength</span>
+        </div>
+        <span class="toggle-icon">+</span>
+      </div>
+      <div class="day-body">
+
+        <div class="warmup-notice">
+          <strong>⚠ Warm-Up Sets Required</strong>
+          <p>Before working sets: 1×10 empty bar → 1×5 at 40% → 1×3 at 60% → 1×1 at 70%. Never jump cold to working weight. Shoulders are fragile.</p>
+        </div>
+
+        <div class="section-label">Primary Press</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Barbell Bench Press</span>
+            <span class="exercise-badge badge-primary">Primary Lift</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">5 × 5</span></div>
+            <div class="stat"><span class="stat-label">Intensity</span><span class="stat-value">~70–75% 1RM</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">3 min</span></div>
+            <div class="stat"><span class="stat-label">Progress</span><span class="stat-value">+2.5 kg</span></div>
+          </div>
+          <p class="exercise-note">Weight you could do ~8 times; stop at 5. <b>Bar speed matters</b> — press with intent, don't grind.</p>
+        </div>
+
+        <div class="section-label">Primary Pull</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Underhand Barbell Row</span>
+            <span class="exercise-badge badge-pull">Pull / Stabiliser</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">4 × 8</span></div>
+            <div class="stat"><span class="stat-label">Start Weight</span><span class="stat-value">40–45 kg</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">2 min</span></div>
+            <div class="stat"><span class="stat-label">Progress</span><span class="stat-value">+5 kg</span></div>
+          </div>
+          <p class="exercise-note">Builds upper-back stability and bench control. <b>Row style matters</b> — hip hinge, controlled, not leg-driven cheat reps. Long-term target: rows ≈ 80–100% of bench weight.</p>
+        </div>
+
+        <div class="section-label">Arm Strength</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Barbell Curl</span>
+            <span class="exercise-badge badge-arm">Arm Strength</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">3 × 6</span></div>
+            <div class="stat"><span class="stat-label">Start Weight</span><span class="stat-value">27.5–30 kg</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">90 sec</span></div>
+            <div class="stat"><span class="stat-label">Progress</span><span class="stat-value">+2.5 kg</span></div>
+          </div>
+          <p class="exercise-note">Kept at lower volume to protect bench recovery. <b>Elbow flexor strength improves bar descent control</b> — it's not vanity work.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DAY B -->
+    <div class="day-card" id="dayB">
+      <div class="day-header" onclick="toggleDay('dayB')">
+        <div class="day-label">
+          <span class="day-tag">Day B</span>
+          <span class="day-title">Arm Strength + Tricep Assistance</span>
+        </div>
+        <span class="toggle-icon">+</span>
+      </div>
+      <div class="day-body">
+
+        <div class="warmup-notice">
+          <strong>Recovery Day for Pressing Muscles</strong>
+          <p>No heavy benching today. Elbow joint warm-up: 2×15 with very light DBs before loading. This protects tendons that curl work stresses.</p>
+        </div>
+
+        <div class="section-label">Curl Work — Pick ONE variation only</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Hammer Curl</span>
+            <span class="exercise-badge badge-arm">Arm Strength</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">4 × 8</span></div>
+            <div class="stat"><span class="stat-label">Weight</span><span class="stat-value">10–12.5 kg DBs</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">90 sec</span></div>
+          </div>
+          <p class="exercise-note"><b>Recommended pick</b> — brachialis emphasis, better carryover to pressing than standard curl. Builds the "thickness" under the bicep.</p>
+        </div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Incline / Lean-Back DB Curl</span>
+            <span class="exercise-badge badge-arm">Arm Strength</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">3 × 10</span></div>
+            <div class="stat"><span class="stat-label">Weight</span><span class="stat-value">8–10 kg DBs</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">90 sec</span></div>
+          </div>
+          <p class="exercise-note"><b>Alternative pick</b> — longer stretch on bicep. Choose this OR hammer curl, not both. Running both curl variations on Day B adds unnecessary elbow flexor fatigue that competes with Day C bench performance.</p>
+        </div>
+
+        <div class="section-label">Tricep Assistance — Primary Bench Limiter Fix</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">DB Floor Press</span>
+            <span class="exercise-badge badge-assist">Tricep Strength</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">4 × 8</span></div>
+            <div class="stat"><span class="stat-label">Start Weight</span><span class="stat-value">16–20 kg each</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">2 min</span></div>
+            <div class="stat"><span class="stat-label">Progress</span><span class="stat-value">+2 kg total</span></div>
+          </div>
+          <p class="exercise-note">Triceps are the <b>most common bench limiter</b>. Floor press trains lockout specifically. Safer without a rack. <b>Don't anchor to the low suggested weights</b> — if you're benching 60+ kg, you can likely floor press 20–24 kg per hand within a few sessions. Progress by feel.</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DAY C -->
+    <div class="day-card" id="dayC">
+      <div class="day-header" onclick="toggleDay('dayC')">
+        <div class="day-label">
+          <span class="day-tag">Day C</span>
+          <span class="day-title">Bench Intensity + Heavy Pull</span>
+        </div>
+        <span class="toggle-icon">+</span>
+      </div>
+      <div class="day-body">
+
+        <div class="warmup-notice">
+          <strong>⚠ Warm-Up Sets Required</strong>
+          <p>Same protocol as Day A: empty bar → 40% → 60% → 70% single → working weight. This is a heavier session — skipping warm-ups is higher risk here than Day A.</p>
+        </div>
+
+        <div class="section-label">Intensity Bench</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Barbell Bench Press</span>
+            <span class="exercise-badge badge-primary">Heavy Practice</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">4 × 4</span></div>
+            <div class="stat"><span class="stat-label">Intensity</span><span class="stat-value">~80% 1RM</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">3–4 min</span></div>
+            <div class="stat"><span class="stat-label">vs Day A</span><span class="stat-value">+2.5–5 kg</span></div>
+          </div>
+          <p class="exercise-note">Focus is <b>bar speed and setup quality</b>. If a rep grinds badly, stop the set. Four quality reps beat five ugly ones.</p>
+        </div>
+
+        <div class="section-label">Heavy Pull</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Underhand Barbell Row</span>
+            <span class="exercise-badge badge-pull">Pull / Stabiliser</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">4 × 6–8</span></div>
+            <div class="stat"><span class="stat-label">Weight</span><span class="stat-value">45–50 kg</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">2 min</span></div>
+          </div>
+          <p class="exercise-note">Heavier than Day A. <b>Controlled tempo on the way down</b> — don't drop the bar. This is where upper-back density is built.</p>
+        </div>
+
+        <div class="section-label">Arm Strength</div>
+
+        <div class="exercise">
+          <div class="exercise-top">
+            <span class="exercise-name">Barbell Curl</span>
+            <span class="exercise-badge badge-arm">Heavy Arm</span>
+          </div>
+          <div class="exercise-stats">
+            <div class="stat"><span class="stat-label">Sets × Reps</span><span class="stat-value">3 × 5</span></div>
+            <div class="stat"><span class="stat-label">Weight</span><span class="stat-value">30–32.5 kg</span></div>
+            <div class="stat"><span class="stat-label">Rest</span><span class="stat-value">2 min</span></div>
+            <div class="stat"><span class="stat-label">Progress</span><span class="stat-value">+2.5 kg</span></div>
+          </div>
+          <p class="exercise-note">Heavier, fewer reps. <b>No body english</b> — if you're swinging, drop the weight. Heavy curl strength improves bar control during bench descent.</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PROGRESSION PANEL -->
+  <div class="panel" id="panel-progression">
+
+    <div class="day-card" style="animation: fadeUp 0.4s ease both;">
+      <div class="day-header" style="cursor:default;">
+        <span class="day-tag" style="font-size:24px;">Progression Rules</span>
+      </div>
+      <div class="day-body" style="display:block; padding-top: 20px;">
+
+        <div class="section-label">When to Add Weight</div>
+
+        <table class="prog-table">
+          <thead>
+            <tr>
+              <th>Lift</th>
+              <th>Condition to Progress</th>
+              <th>Increment</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Bench Press (Day A)</td>
+              <td>All 5×5 reps completed cleanly</td>
+              <td>+2.5 kg</td>
+            </tr>
+            <tr>
+              <td>Bench Press (Day C)</td>
+              <td>All 4×4 reps with good bar speed</td>
+              <td>+2.5 kg</td>
+            </tr>
+            <tr>
+              <td>Underhand Row</td>
+              <td>Top reps achieved with controlled form</td>
+              <td>+5 kg</td>
+            </tr>
+            <tr>
+              <td>Barbell Curl</td>
+              <td>All sets clean, no body swing</td>
+              <td>+2.5 kg</td>
+            </tr>
+            <tr>
+              <td>DB Floor Press</td>
+              <td>Comfortable completion, no sticking</td>
+              <td>+2 kg total</td>
+            </tr>
+            <tr>
+              <td>DB Curls (Day B)</td>
+              <td>Comfortable completion</td>
+              <td>+2 kg per DB</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="section-label" style="margin-top:32px;">Expected Timeline</div>
+
+        <div class="timeline">
+          <div class="tl-item">
+            <span class="tl-time">6 weeks</span>
+            <span class="tl-desc">Noticeable bar speed increase. Setup feels more automatic. Row weight beginning to climb.</span>
+          </div>
+          <div class="tl-item">
+            <span class="tl-time">3 months</span>
+            <span class="tl-desc">+5–10 kg on bench realistic. Floor press approaching bench weight. Curl progressing alongside.</span>
+          </div>
+          <div class="tl-item">
+            <span class="tl-time">6–9 months</span>
+            <span class="tl-desc">+15–25 kg on bench achievable with consistent training, adequate sleep, and sufficient caloric intake. Row should be approaching 80% of bench load.</span>
+          </div>
+        </div>
+
+        <div class="warmup-notice" style="margin-top:28px;">
+          <strong>Row-to-Bench Ratio Target</strong>
+          <p>Long-term: Underhand Row ≈ 80–100% of Bench Press weight. If bench = 60 kg and rows are still 40 kg, bench progress will stall. The upper back is the bench's foundation.</p>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- NOTES PANEL -->
+  <div class="panel" id="panel-notes">
+
+    <div class="notes-grid">
+      <div class="note-card">
+        <div class="note-card-title">Warm-Up Sets</div>
+        <p>Always required before bench and floor press. <b>Empty bar → 40% → 60% → 70% single → work sets.</b> Cold shoulder joints under heavy load is how injuries happen. Non-negotiable.</p>
+      </div>
+      <div class="note-card">
+        <div class="note-card-title">Row Style Matters</div>
+        <p><b>Hip hinge, controlled pulling.</b> The row-to-bench ratio only holds if rows are done strictly. Cheat rows with leg drive at 100% bench weight provide different stimulus than controlled 80% rows.</p>
+      </div>
+      <div class="note-card">
+        <div class="note-card-title">Day B Curl Selection</div>
+        <p>Pick <b>one curl variation</b> on Day B — not both. Two curl variations plus floor press adds elbow flexor fatigue that bleeds into Day C bench performance. Hammer curl is the recommended pick.</p>
+      </div>
+      <div class="note-card">
+        <div class="note-card-title">Floor Press Weights</div>
+        <p>Suggested starting weights (16–20 kg) are <b>conservative</b>. If you bench 60+ kg, you may be ready for 22–26 kg per hand within weeks. Progress by feel, not the suggested ceiling.</p>
+      </div>
+    </div>
+
+    <div class="warning-card">
+      <div class="note-card-title">⚠ Timeline Caveat</div>
+      <p>The +15–25 kg projection over 6–9 months assumes <b>near-perfect consistency, adequate sleep, and sufficient food intake</b>. These are not mentioned in most programs but are equally responsible for results as the training itself. Under-eating or chronic poor sleep will stall progress regardless of programming quality.</p>
+    </div>
+
+    <div class="day-card" style="margin-top:24px; animation: fadeUp 0.4s ease 0.3s both;">
+      <div class="day-header" style="cursor:default;">
+        <span class="day-tag" style="font-size:22px;">Why This Works</span>
+      </div>
+      <div class="day-body" style="display:block; padding-top:16px;">
+        <div class="exercise">
+          <div class="exercise-name" style="font-size:17px;">1 — Triceps → Floor Press</div>
+          <p class="exercise-note" style="margin-top:6px;">The triceps are responsible for lockout — the most common sticking point in a bench press. Floor press trains this directly without needing a spotter or rack.</p>
+        </div>
+        <div class="exercise">
+          <div class="exercise-name" style="font-size:17px;">2 — Upper Back → Underhand Row</div>
+          <p class="exercise-note" style="margin-top:6px;">A weak upper back causes bar instability, poor bar path, and energy leakage. Rows fix this and add bicep training as a free bonus.</p>
+        </div>
+        <div class="exercise">
+          <div class="exercise-name" style="font-size:17px;">3 — Elbow Flexors → Barbell Curl</div>
+          <p class="exercise-note" style="margin-top:6px;">Elbow flexor strength improves bar control during the descent phase of bench. Weak biceps = unstable lowering = energy wasted before the press even begins.</p>
+        </div>
+        <div class="exercise">
+          <div class="exercise-name" style="font-size:17px;">4 — Heavy Practice → Two Bench Days</div>
+          <p class="exercise-note" style="margin-top:6px;">Strength is a skill. Two exposures per week — one volume focused (5×5) and one intensity focused (4×4) — builds both volume adaptation and heavy load tolerance.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- TRACKER PANEL -->
+  <div class="panel" id="panel-tracker">
+
+    <div class="day-card" style="animation: fadeUp 0.4s ease both;">
+      <div class="day-header" style="cursor:default;">
+        <span class="day-tag" style="font-size:22px;">Weekly Session Tracker</span>
+      </div>
+      <div class="day-body" style="display:block; padding-top:16px;">
+
+        <p style="font-size:13px; color: var(--accent); font-family: 'DM Mono', monospace; margin-bottom: 4px;">Progress saves automatically to your browser.</p>
+
+        <div id="tracker-container"></div>
+
+      </div>
+    </div>
+
+    <div class="day-card" style="margin-top: 24px; animation: fadeUp 0.4s ease 0.15s both;">
+      <div class="day-header" style="cursor:default;">
+        <span class="day-tag" style="font-size:22px;">Log Your Lifts</span>
+      </div>
+      <div class="day-body" style="display:block; padding-top:16px;">
+        <p style="font-size:13px; color: var(--accent); font-family: 'DM Mono', monospace; margin-bottom:16px;">Weights save automatically. Persists between sessions.</p>
+
+        <table class="prog-table" id="log-table">
+          <thead>
+            <tr>
+              <th>Lift</th>
+              <th>Current Weight</th>
+              <th>Last Updated</th>
+            </tr>
+          </thead>
+          <tbody id="log-body"></tbody>
+        </table>
+
+        <button onclick="addLogEntry()" style="margin-top:16px; background: var(--surface2); border: 1px solid var(--border); color: var(--accent); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; padding:10px 18px; cursor:pointer; border-radius:2px;">+ Add Entry</button>
+      </div>
+    </div>
+
+    <!-- RESET CARD -->
+    <div class="day-card" style="margin-top: 24px; background: #110a0a; border-color: #3d1a1a; animation: fadeUp 0.4s ease 0.25s both;">
+      <div class="day-header" style="cursor:default; border-bottom-color: #3d1a1a;">
+        <span class="day-tag" style="font-size:22px; color: var(--danger);">Reset Program</span>
+      </div>
+      <div class="day-body" style="display:block; padding-top:20px;">
+        <p style="font-family:'DM Mono',monospace; font-size:13px; color:#a08080; line-height:1.7; margin-bottom:20px;">
+          Use this when restarting the program from scratch — deload, injury, or a new training block. 
+          This clears <b style="color:var(--text);">all session checks and lift weights</b> from storage permanently.
+        </p>
+        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+          <button onclick="resetTracker()" style="background:#1a0a0a; border:1px solid var(--danger); color:var(--danger); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; padding:10px 18px; cursor:pointer; border-radius:2px; transition: background 0.2s;" onmouseover="this.style.background='#2a0a0a'" onmouseout="this.style.background='#1a0a0a'">
+            Clear Session Checks Only
+          </button>
+          <button onclick="resetAll()" style="background: var(--danger); border:1px solid var(--danger); color:#000; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; padding:10px 18px; cursor:pointer; border-radius:2px; font-weight:600; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            ⚠ Full Reset — Clear Everything
+          </button>
+        </div>
+        <p id="reset-confirm" style="display:none; font-family:'DM Mono',monospace; font-size:11px; color:var(--accent); margin-top:12px; letter-spacing:0.1em;">✓ Reset complete.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div class="container" style="padding:0;">
+      Revised Strength Program — Based on ChatGPT draft + coach review &nbsp;·&nbsp; 3 days / week &nbsp;·&nbsp; Barbell + Dumbbells
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // ── Storage keys ──────────────────────────────────────────
+  const LS_CHECKS = 'strength_tracker_checks';
+  const LS_LOG    = 'strength_tracker_log';
+
+  // ── Tab switching ─────────────────────────────────────────
+  function switchTab(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // ── Day accordion ─────────────────────────────────────────
+  function toggleDay(id) {
+    document.getElementById(id).classList.toggle('open');
+  }
+
+  // ── Tracker ───────────────────────────────────────────────
+  const WEEKS = 8;
+  const DAYS  = ['A', 'B', 'C'];
+  const trackerContainer = document.getElementById('tracker-container');
+
+  // Load saved check state from localStorage
+  let checkedState = {};
+  try {
+    const saved = localStorage.getItem(LS_CHECKS);
+    if (saved) checkedState = JSON.parse(saved);
+  } catch(e) {}
+
+  function saveChecks() {
+    try { localStorage.setItem(LS_CHECKS, JSON.stringify(checkedState)); } catch(e) {}
+  }
+
+  function buildTracker() {
+    trackerContainer.innerHTML = '';
+    for (let w = 1; w <= WEEKS; w++) {
+      const row = document.createElement('div');
+      row.className = 'tracker-row';
+
+      const label = document.createElement('span');
+      label.className = 'tracker-label';
+      label.textContent = `Week ${w}`;
+      row.appendChild(label);
+
+      const checks = document.createElement('div');
+      checks.className = 'day-checks';
+
+      DAYS.forEach(d => {
+        const key = `w${w}-${d}`;
+        const box = document.createElement('div');
+        box.className = 'day-check' + (checkedState[key] ? ' done' : '');
+        box.textContent = d;
+        box.setAttribute('title', `Week ${w} — Day ${d}`);
+        box.onclick = () => {
+          checkedState[key] = !checkedState[key];
+          box.classList.toggle('done', checkedState[key]);
+          saveChecks();
+        };
+        checks.appendChild(box);
+      });
+
+      row.appendChild(checks);
+      trackerContainer.appendChild(row);
+    }
+  }
+
+  buildTracker();
+
+  // ── Lift log ──────────────────────────────────────────────
+  const DEFAULT_LIFTS = [
+    'Bench Press (Day A) — 5×5',
+    'Bench Press (Day C) — 4×4',
+    'Underhand Row',
+    'Barbell Curl',
+    'DB Floor Press',
+  ];
+
+  const logBody = document.getElementById('log-body');
+  let logData = [];
+
+  function loadLog() {
+    try {
+      const saved = localStorage.getItem(LS_LOG);
+      if (saved) {
+        logData = JSON.parse(saved);
+        return;
+      }
+    } catch(e) {}
+    logData = DEFAULT_LIFTS.map(name => ({ name, weight: '', date: '' }));
+  }
+
+  function saveLog() {
+    try { localStorage.setItem(LS_LOG, JSON.stringify(logData)); } catch(e) {}
+  }
+
+  function renderLog() {
+    logBody.innerHTML = '';
+    logData.forEach((entry, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${entry.name}</td>
+        <td><input type="text" value="${entry.weight}" placeholder="e.g. 60 kg"
+          style="background:transparent; border:none; border-bottom:1px solid var(--border); color:var(--text); font-family:'DM Mono',monospace; font-size:13px; width:100%; padding:4px 0; outline:none;" /></td>
+        <td style="color:var(--muted);">${entry.date || '—'}</td>
+      `;
+      const input = tr.querySelector('input');
+      input.addEventListener('input', () => {
+        logData[i].weight = input.value;
+        saveLog();
+      });
+      input.addEventListener('blur', () => {
+        if (input.value.trim()) {
+          logData[i].date = new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'2-digit' });
+          saveLog();
+          renderLog();
+        }
+      });
+      logBody.appendChild(tr);
+    });
+  }
+
+  function addLogEntry() {
+    const name = prompt('Lift name:');
+    if (name && name.trim()) {
+      logData.push({ name: name.trim(), weight: '', date: '' });
+      saveLog();
+      renderLog();
+    }
+  }
+
+  loadLog();
+  renderLog();
+
+  // ── Reset functions ───────────────────────────────────────
+  function showResetConfirm() {
+    const el = document.getElementById('reset-confirm');
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3000);
+  }
+
+  function resetTracker() {
+    if (!confirm('Clear all session checkboxes? Your lift weights will be kept.')) return;
+    checkedState = {};
+    saveChecks();
+    buildTracker();
+    showResetConfirm();
+  }
+
+  function resetAll() {
+    if (!confirm('⚠ Full reset: this will erase ALL session checks AND lift weights. Cannot be undone. Continue?')) return;
+    checkedState = {};
+    logData = DEFAULT_LIFTS.map(name => ({ name, weight: '', date: '' }));
+    try {
+      localStorage.removeItem(LS_CHECKS);
+      localStorage.removeItem(LS_LOG);
+    } catch(e) {}
+    buildTracker();
+    renderLog();
+    showResetConfirm();
+  }
+</script>
+
+</body>
+</html>
