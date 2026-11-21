@@ -25,7 +25,7 @@ const base = {
     relative flex min-h-[230px] min-[561px]:min-h-[260px] flex-col justify-between overflow-hidden
     rounded-[24px] border bg-(--card-accent) border-[#101010]/12 p-[22px] text-(--card-ink)
     shadow-[0_5px_0_rgba(16,16,16,.16)] transition-[transform,box-shadow] duration-250 ease-in-out
-    transition-all outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-offset-2
+    transition-all
   `,
   icon: 'grid size-[52px] place-items-center rounded-2xl bg-(--card-icon) text-(--card-accent) [&_svg]:size-[27px]',
   title: 'max-w-[230px] text-[length:clamp(1.45rem,2.2vw,2.2rem)] leading-[.95] font-medium tracking-[-.06em]',
@@ -116,6 +116,7 @@ export function FeatureCard({
   const isDark = variantName === 'dark'
 
   const interactive = !preview
+  const clickable = interactive && !!onClick
   return (
     <article
       className={cn(
@@ -131,25 +132,20 @@ export function FeatureCard({
         '--card-ink': inkFor(color),
         '--card-icon': 'color-mix(in srgb, var(--card-accent) 88%, #1c1c1c)',
       } as React.CSSProperties}
-      role={interactive ? 'button' : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onClick={interactive ? onClick : undefined}
-      onKeyDown={
-        interactive && onClick
-          ? (event) => {
-              if (event.target !== event.currentTarget) return
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                onClick()
-              }
-            }
-          : undefined
-      }
     >
+      {clickable && (
+        // Stretched link: covers the card and is the single click/keyboard target.
+        <button
+          type="button"
+          aria-label={title}
+          onClick={onClick}
+          className="absolute inset-0 z-[5] rounded-[inherit] cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
+        />
+      )}
       <div className={cn(base.icon, v.icon)} aria-hidden="true">
         {icon ? <ArtifactIcon icon={icon} /> : <Sparkles strokeWidth={1.7} />}
       </div>
-      <div className="relative z-10">
+      <div className="pointer-events-none relative z-10">
         <h2 className={cn(base.title, v.title)}>{title}</h2>
         {description && <p className={cn(base.description, v.description)}>{description}</p>}
       </div>
