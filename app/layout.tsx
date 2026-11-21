@@ -20,13 +20,13 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn("h-full", "antialiased", "font-sans", dmSans.variable)}
+      style={{ colorScheme: 'dark' }}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col bg-black text-slate-100">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          forcedTheme="light"
           disableTransitionOnChange
         >
           {children}
