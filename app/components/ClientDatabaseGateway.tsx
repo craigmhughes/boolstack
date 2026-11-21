@@ -65,6 +65,7 @@ export default function ClientDatabaseGateway({ children, backupFile }: { childr
           HtmlFile TEXT NOT NULL,
           Icon TEXT NOT NULL,
           Variant INTEGER NOT NULL DEFAULT 1,
+          Mobile_Variant INTEGER NOT NULL DEFAULT 1,
           Color TEXT NOT NULL DEFAULT '#ff5003',
           Description TEXT NOT NULL DEFAULT '',
           Created_At BIGINT NOT NULL DEFAULT 0
@@ -72,6 +73,7 @@ export default function ClientDatabaseGateway({ children, backupFile }: { childr
 
         -- Existing databases already have the table without these columns
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Variant INTEGER NOT NULL DEFAULT 1;
+        ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Mobile_Variant INTEGER NOT NULL DEFAULT 1;
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Color TEXT NOT NULL DEFAULT '#ff5003';
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Description TEXT NOT NULL DEFAULT '';
         ALTER TABLE artifacts ADD COLUMN IF NOT EXISTS Created_At BIGINT NOT NULL DEFAULT 0;

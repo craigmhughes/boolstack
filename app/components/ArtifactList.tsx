@@ -82,6 +82,7 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
       htmlfile,
       icon,
       variant,
+      mobile_variant,
       color,
       description,
       created_at

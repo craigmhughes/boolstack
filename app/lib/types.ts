@@ -3,6 +3,7 @@ export type Artifact = {
   htmlfile: string;
   icon: string;
   variant: number;
+  mobile_variant: number;
   color: string;
   description: string;
   created_at: number;
@@ -18,6 +19,7 @@ export type StoredValue = {
 export type ArtifactTheme = {
   icon: string;
   variant: number;
+  mobile_variant: number;
   color: string;
   description: string;
 };

@@ -43,8 +43,8 @@ export async function insertArtifact(
   input: { namespace: string; htmlfile: string } & ArtifactTheme,
 ): Promise<void> {
   await db.query(
-    "INSERT INTO artifacts (Namespace, HtmlFile, Icon, Variant, Color, Description, Created_At) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    [input.namespace, input.htmlfile, input.icon, input.variant, input.color, input.description, Date.now()],
+    "INSERT INTO artifacts (Namespace, HtmlFile, Icon, Variant, Mobile_Variant, Color, Description, Created_At) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    [input.namespace, input.htmlfile, input.icon, input.variant, input.mobile_variant, input.color, input.description, Date.now()],
   );
 }
 
@@ -70,13 +70,13 @@ export async function updateArtifact(
 ): Promise<void> {
   if (htmlfile !== undefined) {
     await db.query(
-      "UPDATE artifacts SET Icon = $2, Variant = $3, Color = $4, Description = $5, HtmlFile = $6 WHERE Namespace = $1",
-      [namespace, theme.icon, theme.variant, theme.color, theme.description, htmlfile],
+      "UPDATE artifacts SET Icon = $2, Variant = $3, Mobile_Variant = $4, Color = $5, Description = $6, HtmlFile = $7 WHERE Namespace = $1",
+      [namespace, theme.icon, theme.variant, theme.mobile_variant, theme.color, theme.description, htmlfile],
     );
   } else {
     await db.query(
-      "UPDATE artifacts SET Icon = $2, Variant = $3, Color = $4, Description = $5 WHERE Namespace = $1",
-      [namespace, theme.icon, theme.variant, theme.color, theme.description],
+      "UPDATE artifacts SET Icon = $2, Variant = $3, Mobile_Variant = $4, Color = $5, Description = $6 WHERE Namespace = $1",
+      [namespace, theme.icon, theme.variant, theme.mobile_variant, theme.color, theme.description],
     );
   }
 }
