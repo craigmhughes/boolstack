@@ -60,8 +60,9 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
     actions: 'left-5 right-auto',
   },
   outlined: {
-    root: 'border-[#101010] bg-[#fffaf2]',
+    root: 'border-[#101010] bg-[#fffaf2] text-[#1c1c1c]',
     icon: 'border border-[#101010]/20 bg-(--card-accent) text-(--card-ink)',
+    description: 'text-[color-mix(in_srgb,#1c1c1c_68%,transparent)]',
     actions: '[&_button]:text-[#1c1c1c] [&_button]:hover:text-[#1c1c1c]',
   },
   dark: {
@@ -72,8 +73,9 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
     actions: 'top-4 right-[52px]',
   },
   minimal: {
-    root: 'border-[#101010] bg-[#b8dfe0]',
+    root: 'border-[#101010] bg-[#b8dfe0] text-[#1c1c1c]',
     icon: 'size-[54px] rounded-[10px] [&_svg]:size-8 bg-(--card-accent) text-(--card-ink)',
+    description: 'text-[color-mix(in_srgb,#1c1c1c_68%,transparent)]',
     actions: '[&_button]:text-[#1c1c1c] [&_button]:hover:text-[#1c1c1c]',
   },
 }
