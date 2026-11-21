@@ -5,7 +5,8 @@ import { useGateway } from "./ClientDatabaseGateway";
 import { useLiveQuery } from "@electric-sql/pglite-react";
 import { Artifact } from "../lib/types";
 import { ArtifactViewContext } from "./ArtifactView";
-import { backup } from "../lib/db";
+import { scheduleBackup } from "../lib/db";
+import { deleteArtifact as removeArtifact } from "../lib/artifacts";
 import { ArtifactIcon } from "./IconPicker";
 import { FeatureCard } from "./feature-card";
 
@@ -36,7 +37,8 @@ export function ArtifactList() {
       htmlfile,
       icon,
       variant,
-      color
+      color,
+      description
     FROM artifacts
     ORDER BY namespace
   `);
@@ -53,11 +55,8 @@ export function ArtifactList() {
     if (!db) {
       return;
     }
-    db.query(`
-      DELETE FROM artifacts 
-      WHERE namespace = $1
-    `, [namespace]).then(() => {
-      backup(db);
+    removeArtifact(db, namespace).then(() => {
+      scheduleBackup(db);
     });
   };
 

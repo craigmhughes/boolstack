@@ -13,7 +13,9 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useGateway } from "./ClientDatabaseGateway"
-import { backup } from "../lib/db"
+import { scheduleBackup } from "../lib/db"
+import { insertArtifact } from "../lib/artifacts"
+import type { Artifact } from "../lib/types"
 import { FileUploadFieldInput } from "./opensourceui/FileUpload"
 import { DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { IconPicker } from "./IconPicker"
@@ -27,7 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export function ArtifactEdit() {
+export function ArtifactEdit(
+  { artifact, onSaved }: { artifact?: Artifact; onSaved?: () => void } = {},
+) {
   const [selectedIcon, setSelectedIcon] = useState("IconRocket")
   const [selectedVariant, setSelectedVariant] = useState("1")
   const [selectedColor, setSelectedColor] = useState("#ff5003")
@@ -44,14 +48,20 @@ export function ArtifactEdit() {
     const file = formData.get("file")
     const htmlContent = file instanceof File ? await file.text() : ""
 
-    db.query(
-      "INSERT INTO artifacts (Namespace, HtmlFile, Icon, Variant, Color) VALUES ($1, $2, $3, $4, $5)",
-      [formData.get("name"), htmlContent, selectedIcon, Number(selectedVariant), selectedColor],
-    ).catch((error) => {
+    try {
+      await insertArtifact(db, {
+        namespace: String(formData.get("name") ?? ""),
+        htmlfile: htmlContent,
+        icon: selectedIcon,
+        variant: Number(selectedVariant),
+        color: selectedColor,
+        description: artifact?.description ?? "",
+      })
+      scheduleBackup(db)
+      onSaved?.()
+    } catch (error) {
       console.error("Error saving artifact:", error)
-    }).finally(() => {
-      backup(db);
-    });
+    }
   }
 
   return (

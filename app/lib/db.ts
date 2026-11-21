@@ -1,4 +1,17 @@
 import { get } from "idb-keyval";
+import type { PGliteWithLive } from "@electric-sql/pglite/live";
+
+let backupTimer: ReturnType<typeof setTimeout> | undefined;
+
+/**
+ * Debounced wrapper around `backup`. Errors are logged, never thrown.
+ */
+export function scheduleBackup(db: PGliteWithLive, delayMs = 1500): void {
+  clearTimeout(backupTimer);
+  backupTimer = setTimeout(() => {
+    backup(db).catch((err) => console.error("Backup failed:", err));
+  }, delayMs);
+}
 
 /**
  * This function retrieves the backup source from **IndexedDB**, dumps the 
@@ -9,14 +22,12 @@ import { get } from "idb-keyval";
  * 
  * @param db The **database instance** to back up.
  */
-export async function backup(db: any) {
+export async function backup(db: PGliteWithLive) {
   const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
   if (!backupSource) {
     console.error("Backup source is not available");
     return;
   };
-
-  db.dumpDataDir()
 
   const fileHandle = await backupSource.getFileHandle('backup.tar.gz', { create: true });
   const writable = await fileHandle.createWritable();

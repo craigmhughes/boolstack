@@ -4,4 +4,19 @@ export type Artifact = {
   icon: string;
   variant: number;
   color: string;
+  description: string;
+};
+
+export type StoredValue = {
+  namespace: string;
+  key: string;
+  value: string;
+  updated_at: number;
+};
+
+export type ArtifactTheme = {
+  icon: string;
+  variant: number;
+  color: string;
+  description: string;
 };
