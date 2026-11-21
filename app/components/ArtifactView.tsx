@@ -40,12 +40,24 @@ function restoreActiveArtifact(): Artifact | null {
   }
 }
 
-export function ArtifactView({children}: {children: React.ReactNode}) {
+export function ArtifactView({
+  children,
+  onViewerOpenChange,
+}: {
+  children: React.ReactNode;
+  onViewerOpenChange?: (open: boolean) => void;
+}) {
   const { db } = useGateway();
   const [activeArtifact, setActiveArtifactState] = useState<Artifact | null>(restoreActiveArtifact);
   const [loaded, setLoaded] = useState<{ namespace: string; url: string } | null>(null);
   const artifactURLs = useRef(new Map<string, string>());
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const viewerOpen = activeArtifact !== null;
+  // Runs on mount too, so a viewer restored from sessionStorage is reported as open.
+  useEffect(() => {
+    onViewerOpenChange?.(viewerOpen);
+  }, [viewerOpen, onViewerOpenChange]);
 
   const namespace = activeArtifact?.namespace ?? null;
   const activeURL = loaded && loaded.namespace === namespace ? loaded.url : null;
