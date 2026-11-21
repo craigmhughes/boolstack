@@ -36,6 +36,7 @@ export default function Home() {
   const [introMinimized, setIntroMinimized] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [registryOpen, setRegistryOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const gridVisible = showGrid || introMinimized;
 
   const handleInitialize = async () => {
@@ -73,7 +74,7 @@ export default function Home() {
         grainOpacity={0.15}
         className="!fixed inset-0 -z-10 bg-black min-h-0 h-full w-full"
       />
-      <div inert={registryOpen} className="contents">
+      <div inert={registryOpen || viewerOpen} className="contents">
         <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
       </div>
       <div className={
@@ -108,7 +109,7 @@ export default function Home() {
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
             <div inert={registryOpen} className="contents">
-              <ArtifactView>
+              <ArtifactView onViewerOpenChange={setViewerOpen}>
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button
