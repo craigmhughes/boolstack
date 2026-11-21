@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# boolstack
 
-## Getting Started
+boolstack is a local-first admin panel for your personal single-file HTML apps. Apps are stored in a browser-side PGlite database, and the whole library is backed up to a folder you choose on your machine.
 
-First, run the development server:
+## Requirements
+
+- A Chromium-based browser (Chrome, Edge, etc.). Folder backups use the File System Access API, which other browsers do not support.
+- [pnpm](https://pnpm.io/installation)
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`pnpm dev` starts the Next.js dev server with `--experimental-https`, so open the HTTPS URL it prints.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Backups
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Pick a folder in the storage settings. boolstack writes a `backup.tar.gz` file into that folder, and restores from it on the next start.
 
-## Learn More
+## Per-app localStorage
 
-To learn more about Next.js, take a look at the following resources:
+Each app's iframe `localStorage` is namespaced with the prefix `__bs_{encodeURIComponent(appName)}_`. Those keys are synced into the `namespaced_local_storage` table in the database. When an app opens with empty storage, its values are rehydrated from the database.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Adding an app
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Apps are self-contained `.html` files. Do not reference external assets (scripts, stylesheets, fonts, images) by URL; inline everything the app needs so it works offline.
