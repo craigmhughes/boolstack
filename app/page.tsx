@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "./components/ThemeToggle";
 import { IconPlus } from "@tabler/icons-react";
 
 const APP_REVEAL_DELAY = 1000;
@@ -26,6 +27,8 @@ export default function Home() {
   const [showGrid, setShowGrid] = useState(false);
 
   const [introMinimized, setIntroMinimized] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const gridVisible = showGrid || introMinimized;
 
   const handleInitialize = async () => {
     const restoredFile = await restoreBackupFile();
@@ -34,15 +37,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (introMinimized) {
-      setShowGrid(true);
-      setTimeout(() => {
-        setShowApp(true);
-      }, APP_REVEAL_DELAY)
-    } else {
-      setShowApp(false);
-      setShowGrid(false);
-    }
+    const timer = setTimeout(
+      () => setShowApp(introMinimized),
+      introMinimized ? APP_REVEAL_DELAY : 0,
+    );
+    return () => clearTimeout(timer);
   }, [introMinimized]);
 
   useEffect(() => {
@@ -71,8 +70,8 @@ export default function Home() {
       } >
         <div className={cx(
           "transition-all duration-1000 flex gap-8 flex-col",
-          !showGrid && "scale-0 opacity-0",
-          showGrid && "scale-100 opacity-100"
+          !gridVisible && "scale-0 opacity-0",
+          gridVisible && "scale-100 opacity-100"
         )}>
           <Grid
             size="60"
@@ -82,26 +81,28 @@ export default function Home() {
           <p className="text-[11px] tracking-wider text-slate-400">Loading...</p>
         </div>
       </div>
-      <main className={
-        cx(
-          "flex flex-1 w-full max-w-3xl flex-col items-center justify-between",
-          "py-32 px-16 bg-white dark:bg-black sm:items-start",
-        )
-      }>
+      <main className="flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 py-6 sm:py-10 bg-white dark:bg-black">
+        <header className="flex items-center justify-between mb-6">
+          <span className="font-medium tracking-tight text-xl">boolstack</span>
+          <ModeToggle />
+        </header>
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
             <ArtifactView>
-              <Dialog>
+              <Dialog open={createOpen} onOpenChange={setCreateOpen}>
                 <DialogTrigger asChild className="cursor-pointer">
-                  <Button className="py-7 px-10 rounded-full bg-green-600 fixed bottom-3 right-3">
+                  <Button
+                    aria-label="Add app"
+                    className="size-14 rounded-full bg-green-600 fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
+                  >
                     <IconPlus className="size-6 stroke-2" />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <ArtifactEdit />
+                  <ArtifactEdit key="new" onSaved={() => setCreateOpen(false)} />
                 </DialogContent>
               </Dialog>
-              <ArtifactList />
+              <ArtifactList onCreate={() => setCreateOpen(true)} />
             </ArtifactView>
           </ClientDatabaseGateway>
         )}
