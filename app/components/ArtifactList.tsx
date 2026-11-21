@@ -227,7 +227,7 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
       )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent>
+        <DialogContent className="md:max-w-[min(56rem,calc(100%-2rem))]">
           {editing && (
             <ArtifactEdit
               key={editing.namespace}

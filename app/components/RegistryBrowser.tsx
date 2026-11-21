@@ -280,7 +280,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
       </div>
 
       <Dialog open={adding && !!selected && hasHtml} onOpenChange={setAdding}>
-        <DialogContent>
+        <DialogContent className="md:max-w-[min(56rem,calc(100%-2rem))]">
           <DialogTitle className="sr-only">Add {selected?.name} to my apps</DialogTitle>
           <DialogDescription className="sr-only">Add a copy of this app to your library.</DialogDescription>
           {selected && html !== null && (

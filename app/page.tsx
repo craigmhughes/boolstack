@@ -141,7 +141,7 @@ export default function Home() {
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                  <DialogContent>
+                  <DialogContent className="md:max-w-[min(56rem,calc(100%-2rem))]">
                     <ArtifactEdit key="new" onSaved={() => setCreateOpen(false)} />
                   </DialogContent>
                 </Dialog>
