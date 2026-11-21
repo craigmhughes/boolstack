@@ -12,6 +12,9 @@ import {
 import { useGateway } from "./ClientDatabaseGateway";
 import { ArtifactIcon } from "./IconPicker";
 import { Button } from "@/components/ui/button";
+import { Grid } from "ldrs/react";
+import "ldrs/react/Grid.css";
+import { BrandLogo, BrandTag } from "./brand";
 
 type ArtifactData = {
   activeArtifact: Artifact | null;
@@ -49,6 +52,8 @@ export function ArtifactView({children}: {children: React.ReactNode}) {
 
   const setActiveArtifact = useCallback((artifact: Artifact | null) => {
     setActiveArtifactState(artifact);
+    // Drop the previous URL so the iframe only mounts after hydration finishes.
+    setLoaded(prev => (artifact && prev?.namespace === artifact.namespace ? prev : null));
     try {
       if (artifact) {
         sessionStorage.setItem(SESSION_KEY, JSON.stringify(artifact));
@@ -125,24 +130,43 @@ export function ArtifactView({children}: {children: React.ReactNode}) {
 
   return (
     <ArtifactViewContext.Provider value={contextValue}>
-      {activeArtifact && activeURL ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-background">
-          <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b px-3 pt-[env(safe-area-inset-top)] box-content">
-            <div className="flex min-w-0 items-center gap-2">
-              <ArtifactIcon icon={activeArtifact.icon} className="size-5 shrink-0" />
-              <p className="truncate text-sm font-medium">{activeArtifact.namespace}</p>
+      {activeArtifact ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black text-slate-100">
+          <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-3 pt-[env(safe-area-inset-top)] box-content">
+            <div className="flex min-w-0 items-center gap-3">
+              <BrandLogo size="sm" showWordmark={false} />
+              <div className="h-5 w-px shrink-0 bg-slate-700" />
+              <div className="flex min-w-0 items-center gap-2">
+                <ArtifactIcon icon={activeArtifact.icon} className="size-5 shrink-0" />
+                <p className="truncate text-sm font-medium tracking-tight">{activeArtifact.namespace}</p>
+              </div>
+              <BrandTag className="hidden py-1 px-2 text-[10px] md:inline-flex">Sandboxed</BrandTag>
             </div>
-            <Button variant="ghost" onClick={() => setActiveArtifact(null)}>
+            <Button
+              variant="ghost"
+              aria-label="Close app"
+              className="bg-transparent hover:bg-slate-800 text-slate-100 hover:text-slate-100 cursor-pointer"
+              onClick={() => setActiveArtifact(null)}
+            >
               <IconX />
-              Close
+              <span className="max-md:hidden">Close</span>
             </Button>
           </header>
-          <iframe
-            ref={iframeRef}
-            src={activeURL}
-            title={activeArtifact.namespace}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
-            className="w-full flex-1 border-0 bg-white" />
+          {activeURL ? (
+            <iframe
+              ref={iframeRef}
+              src={activeURL}
+              title={activeArtifact.namespace}
+              sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
+              className="w-full flex-1 border-0 bg-white" />
+          ) : (
+            <div className="flex flex-1 items-center justify-center">
+              <div className="flex flex-col items-center gap-8">
+                <Grid size="60" speed="1.5" color="white" />
+                <p className="text-[11px] tracking-wider text-slate-400">Loading app...</p>
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
       {children}
