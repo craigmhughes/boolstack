@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { IconArrowLeft, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,9 +10,11 @@ import { fetchRegistryApps, fetchRegistryHtml } from "../lib/registry-client";
 import type { RegistryApp } from "../lib/registry-types";
 import { AppIcon } from "./app-icon";
 import { ArtifactEdit } from "./ArtifactEdit";
-import { BrandHeading, BrandLogo, BrandTag } from "./brand";
+import { BrandHeading, BrandTag } from "./brand";
+import { BrandLogoMotion } from "./brand/BrandLogoMotion";
 import { FeatureCard } from "./feature-card";
 import { GradientBackground } from "./GradientBackground";
+import { headerVariants, pushVariants, screenSpring } from "../lib/motion";
 import { ErrorBadge, RegistryInfoPanel, RegistryPreviewFrame } from "./RegistryPreview";
 
 const MOBILE_QUERY = "(max-width: 639px)";
@@ -53,8 +56,7 @@ export function RegistryBrowser({
   onOpenChange: (open: boolean) => void;
 }): React.JSX.Element | null {
   // The overlay is mounted only while open, so every open starts from fresh state.
-  if (!open) return null;
-  return <RegistryOverlay onOpenChange={onOpenChange} />;
+  return <AnimatePresence>{open && <RegistryOverlay key="registry" onOpenChange={onOpenChange} />}</AnimatePresence>;
 }
 
 function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => void }) {
@@ -65,6 +67,8 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
   const [attempt, setAttempt] = useState(0);
   const [listResult, setListResult] = useState<{ attempt: number; apps?: RegistryApp[]; error?: string } | null>(null);
   const [selected, setSelected] = useState<RegistryApp | null>(null);
+  const [dir, setDir] = useState(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [htmls, setHtmls] = useState<Record<string, string>>({});
   const [htmlAttempt, setHtmlAttempt] = useState(0);
   const [htmlError, setHtmlError] = useState<{ slug: string; attempt: number; error: string } | null>(null);
@@ -117,6 +121,16 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
 
   const close = useCallback(() => onOpenChange(false), [onOpenChange]);
 
+  const back = useCallback(() => {
+    setDir(-1);
+    setSelected(null);
+  }, []);
+
+  // Start each screen at the top.
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [slug]);
+
   // Mirror `adding` into a ref so the Escape listener never reads a stale value.
   const addingRef = useRef(adding);
   useEffect(() => {
@@ -128,12 +142,12 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
     // so an Escape meant for the Add dialog is seen while it is still open.
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented || addingRef.current) return;
-      if (selected) setSelected(null);
+      if (selected) back();
       else close();
     };
     window.addEventListener("keydown", onKey, true);
     return () => window.removeEventListener("keydown", onKey, true);
-  }, [selected, close]);
+  }, [selected, back, close]);
 
   const listLoading = !listResult || listResult.attempt !== attempt;
   const apps = listResult && !listLoading ? listResult.apps : undefined;
@@ -145,49 +159,83 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
 
   const select = (app: RegistryApp) => {
     setHtmlError(null);
+    setDir(1);
     setSelected(app);
   };
 
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-label="App registry"
+      variants={pushVariants}
+      custom={1}
+      initial="enter"
+      animate="center"
+      exit={{ x: "100%" }}
+      transition={screenSpring}
       className="fixed inset-0 z-50 flex flex-col bg-black text-slate-100"
     >
       <GradientBackground className="!fixed !inset-0 !min-h-0 -z-10 pointer-events-none" />
-      <header className="box-content flex h-12 shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-3 pt-[env(safe-area-inset-top)] sm:px-4">
+      <motion.header
+        variants={headerVariants}
+        initial="hidden"
+        animate="shown"
+        exit="hidden"
+        transition={{ ...screenSpring, delay: 0.08 }}
+        className="box-content flex h-12 shrink-0 items-center justify-between gap-2 border-b border-slate-800 px-3 pt-[env(safe-area-inset-top)] sm:px-4"
+      >
         <div className="flex min-w-0 items-center gap-3">
-          {selected && (
-            <Button
-              type="button"
-              variant="ghost"
-              aria-label="Back to registry"
-              className={ghostOnBlack}
-              onClick={() => setSelected(null)}
-            >
-              <IconArrowLeft />
-              <span>Back</span>
-            </Button>
-          )}
+          <AnimatePresence initial={false}>
+            {selected && (
+              <motion.div
+                key="back"
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={screenSpring}
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  aria-label="Back to registry"
+                  className={ghostOnBlack}
+                  onClick={back}
+                >
+                  <IconArrowLeft />
+                  <span>Back</span>
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <div className={selected ? "max-sm:hidden" : undefined}>
-            <BrandLogo size="sm" />
+            <BrandLogoMotion size="sm" />
           </div>
         </div>
         <Button ref={closeRef} variant="ghost" aria-label="Close registry" className={ghostOnBlack} onClick={close}>
           <IconX />
           <span className="max-md:hidden">Close</span>
         </Button>
-      </header>
+      </motion.header>
 
-      <div className="flex-1 overflow-y-auto">
+      <div ref={scrollRef} className="relative flex-1 overflow-x-hidden overflow-y-auto">
+        <AnimatePresence mode="popLayout" custom={dir} initial={false}>
         {selected ? (
-          <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:min-h-full lg:flex-row lg:px-10">
+          <motion.div
+            key={selected.slug}
+            custom={dir}
+            variants={pushVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={screenSpring}
+            className="mx-auto flex w-full max-w-screen-2xl flex-col gap-6 px-4 py-6 sm:px-6 lg:min-h-full lg:flex-row lg:px-10"
+          >
             <RegistryInfoPanel
               app={selected}
               ready={hasHtml}
               onAdd={() => setAdding(true)}
-              onBack={() => setSelected(null)}
+              onBack={back}
             />
             <RegistryPreviewFrame
               app={selected}
@@ -198,9 +246,18 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
                 setHtmlAttempt((n) => n + 1);
               }}
             />
-          </div>
+          </motion.div>
         ) : (
-          <div className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-10">
+          <motion.div
+            key="list"
+            custom={dir}
+            variants={pushVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={screenSpring}
+            className="mx-auto w-full max-w-screen-2xl px-4 py-6 sm:px-6 lg:px-10"
+          >
             <div className="flex flex-wrap items-center gap-3">
               <BrandHeading as="h2" className="max-sm:text-3xl">Registry</BrandHeading>
               {apps && <BrandTag>{apps.length} {apps.length === 1 ? "app" : "apps"}</BrandTag>}
@@ -275,8 +332,9 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
+        </AnimatePresence>
       </div>
 
       <Dialog open={adding && !!selected && hasHtml} onOpenChange={setAdding}>
@@ -303,6 +361,6 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

@@ -9,6 +9,7 @@ import { love, thinking } from "blobatar/expression";
 import "blobatar/motion.css";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { GradientBackground } from "./GradientBackground";
+import { pushVariants, screenSpring } from "../lib/motion";
 import {
   Stepper,
   StepperIndicator,
@@ -77,6 +78,12 @@ export function StoragePersistence({
   const [installPromptEvent, setInstallPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [shouldThink, setShouldThink] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
+  const [prevStep, setPrevStep] = useState(currentStep);
+  const [stepDir, setStepDir] = useState(1);
+  if (prevStep !== currentStep) {
+    setPrevStep(currentStep);
+    setStepDir(currentStep > prevStep ? 1 : -1);
+  }
 
   const handleInstall = async () => {
     if (!installPromptEvent) return;
@@ -267,7 +274,8 @@ export function StoragePersistence({
             key="overlay"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 40 }}
+            exit={{ opacity: 0, x: "-30%" }}
+            transition={screenSpring}
             className="fixed inset-0 z-[100]"
           >
             <GradientBackground
@@ -322,14 +330,16 @@ export function StoragePersistence({
                               ))}
                             </StepperNav>
 
-                            <div data-slot="stepper-panel" data-state={currentStep} className="w-full">
-                              <AnimatePresence mode="wait" initial={false}>
+                            <div data-slot="stepper-panel" data-state={currentStep} className="w-full overflow-hidden">
+                              <AnimatePresence mode="wait" initial={false} custom={stepDir}>
                                 <motion.div
                                   key={currentStep}
-                                  initial={{ x: 40, opacity: 0 }}
-                                  animate={{ x: 0, opacity: 1 }}
-                                  exit={{ x: -40, opacity: 0 }}
-                                  transition={{ duration: 0.3 }}
+                                  custom={stepDir}
+                                  variants={pushVariants}
+                                  initial="enter"
+                                  animate="center"
+                                  exit="exit"
+                                  transition={screenSpring}
                                   className="w-56 text-center text-sm flex items-center justify-center w-full"
                                 >
                                   {stepperContent[currentStep - 1]}
