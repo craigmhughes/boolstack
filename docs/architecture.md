@@ -12,9 +12,9 @@ Browser
     Backup           --> backup.tar.gz in a user-chosen folder (File System Access API)
   Service worker (public/sw.js)
 
-Server (Node.js)
-  GET /api/registry         list sample apps
-  GET /api/registry/[slug]  serve one sample app's HTML
+Static files generated at build time (no server)
+  /registry/index.json       list sample apps
+  /registry/<slug>.html      one sample app's HTML
 ```
 
 ## Storage: PGlite
@@ -66,14 +66,13 @@ Only `localStorage` is bridged. `sessionStorage`, cookies and IndexedDB inside a
 - On start, `checkExistingBackup` looks for a non-empty `backup.tar.gz` and, if found, the database is restored from it.
 - Browsers can revoke folder permission between sessions; `hasBackupPermission` and `reauthorizeBackupSource` handle the re-prompt, which must come from a user gesture.
 
-## Registry API
+## Registry (static)
 
-`app/lib/registry.ts` (server-only, uses `node:fs`) reads `registry/*.html` at request time.
+The site is a static export (`output: "export"`). `app/lib/registry.ts` (build-time only, uses `node:fs`) reads `registry/*.html` while `next build` runs, through two `force-static` route handlers:
 
-- `GET /api/registry` returns `{ apps: RegistryApp[] }`, with metadata parsed from each file's `<head>`, sorted by name.
-- `GET /api/registry/[slug]` returns the raw HTML (`text/html`, `X-Content-Type-Options: nosniff`), or 404. Slugs are validated against `[a-z0-9][a-z0-9_-]*` and the resolved path must stay inside `registry/`.
-- Both routes are `force-dynamic` and send `Cache-Control: no-store`.
-- `next.config.ts` sets `outputFileTracingIncludes` so `registry/**/*` is included in traced production output.
+- `app/registry/index.json/route.ts` emits `out/registry/index.json`: `{ apps: RegistryApp[] }`, with metadata parsed from each file's `<head>`, sorted by name.
+- `app/registry/[file]/route.ts` emits one `out/registry/<slug>.html` per app via `generateStaticParams` (`dynamicParams = false`). Slugs are validated against `[a-z0-9][a-z0-9_-]*` and the resolved path must stay inside `registry/`.
+- The client (`app/lib/registry-client.ts`) fetches these static files. Adding or removing a registry app needs a rebuild.
 
 Adding an app from the registry clones its HTML into the user's own database. See [registry.md](registry.md).
 
@@ -84,6 +83,6 @@ Adding an app from the registry clones its HTML into the user's own database. Se
 - Precaches `/` and `/manifest.json` on install; old `boolstack-*` caches are removed on activate.
 - Navigations: network first, caching successful responses, falling back to the cached route and then `/` when offline.
 - `/_next/static/*`, `.wasm` and `.data` files (the PGlite binaries): cache first.
-- Everything else, including `/api/registry`, goes to the network.
+- Everything else, including `/registry/*`, goes to the network.
 
 `app/manifest.json` provides the install metadata. `StoragePersistence.tsx` also requests persistent storage (`navigator.storage.persist()`) and handles the first-run backup folder flow.

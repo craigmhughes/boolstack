@@ -29,7 +29,7 @@ The service worker is only registered in production builds; in development any e
 | --- | --- |
 | `pnpm dev` | Dev server (webpack, HTTPS) |
 | `pnpm build` | Production build (webpack) |
-| `pnpm start` | Serve the production build |
+| `pnpm start` | Serve the static build in `out/` |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | `tsc --noEmit` |
 
@@ -50,5 +50,5 @@ The user guide (`content/user-guide.md`, rendered at `/guide`) uses images in `p
 ## Conventions
 
 - TypeScript, React 19, Tailwind CSS 4, shadcn/ui primitives in `components/ui/`.
-- Server-only code is limited to `app/lib/registry.ts` and `app/api/`. Do not import them from client components.
+- Build-time-only code is limited to `app/lib/registry.ts` and `app/registry/` (static route handlers). Do not import them from client components. The site is a static export: no request-dependent handlers, server actions or middleware.
 - Accessibility target is WCAG 2.2 AA: keyboard operation, visible focus, labelled controls, reduced-motion support, and announcements through `LiveStatus` for async state changes.

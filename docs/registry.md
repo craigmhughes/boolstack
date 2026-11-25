@@ -5,7 +5,7 @@ The registry is a set of ready-made single-file HTML apps in the [`registry/`](.
 ## How it works
 
 - Every `*.html` file in `registry/` is an app. Other files (such as its README) are ignored.
-- The directory is read at request time by `GET /api/registry` and `GET /api/registry/[slug]`.
+- The directory is read at **build time** and emitted as static files (`/registry/index.json` and `/registry/<slug>.html`). Adding or removing an app needs a rebuild.
 - Adding an app **clones** its HTML into the user's local database. Removing or changing a file later does not affect users who already added it.
 - Previewing runs the app in a stricter sandbox with in-memory storage, and saves nothing.
 

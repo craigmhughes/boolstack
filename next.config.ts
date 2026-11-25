@@ -1,10 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  outputFileTracingIncludes: {
-    "/api/registry/**": ["./registry/**/*"],
-  },
+  // Static site: `next build` writes the deployable site to out/.
+  output: "export",
 };
-
 
 export default nextConfig;

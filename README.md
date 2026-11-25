@@ -1,4 +1,4 @@
-# Boolstack
+![Boolstack Logo](app\boolstack-logo-plate.svg "Boolstack")
 
 A local-first launcher for your personal single-file HTML apps. Keep the little apps your AI assistant builds for you (a habit tracker, a budget calculator, a flashcard deck) in one dashboard. Your apps and their data live in your browser and are backed up to a folder you choose. No account, no server-side storage.
 
@@ -49,7 +49,7 @@ pnpm start
 | --- | --- |
 | `pnpm dev` | Dev server (webpack, HTTPS) |
 | `pnpm build` | Production build (webpack) |
-| `pnpm start` | Serve the production build |
+| `pnpm start` | Serve the static build in `out/` |
 | `pnpm lint` | Run ESLint |
 | `pnpm typecheck` | Type-check with `tsc --noEmit` |
 
@@ -57,7 +57,7 @@ pnpm start
 
 ```
 app/
-  api/registry/     Read-only registry API (the only server code)
+  registry/         Build-time static registry routes (index.json, <slug>.html)
   components/       UI: launcher grid, viewer, editor, registry browser, onboarding
   guide/            In-app user guide page
   lib/              Database, backup, storage bridge, registry helpers
@@ -71,7 +71,7 @@ scripts/            Maintenance scripts (brand asset generation)
 
 ## Deployment
 
-Boolstack needs a Node.js server (the registry API reads the `registry/` directory at request time) and must be served over HTTPS in production for the PWA and File System Access features. A static export is not supported. See [docs/deployment.md](docs/deployment.md).
+Boolstack builds to a static site (`out/`) that any static host can serve; the `registry/` directory is baked in at build time. Serve it over HTTPS from the domain root for the PWA and File System Access features. See [docs/deployment.md](docs/deployment.md).
 
 ## Adding apps to the registry
 

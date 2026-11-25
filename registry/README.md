@@ -5,7 +5,7 @@ This directory is the boolstack app registry: a set of ready-made, single-file H
 ## How it works
 
 - Every `*.html` file in this directory is an app. Other files (like this README) are ignored.
-- The directory is read at request time, so adding or removing files changes what users see. No rebuild is needed; `next start` and `next dev` both pick up changes.
+- The directory is read at build time and emitted as static files, so adding or removing files changes what users see after the next build. `next dev` picks up changes on reload.
 - When a user adds an app, it is **cloned** into their local database. Removing a file here never affects users who already added it.
 - Users can rename and restyle their copy freely.
 - Previewing an app saves nothing.

@@ -1,25 +1,15 @@
 import type { RegistryApp } from "./registry-types";
 
-async function failure(res: Response, what: string): Promise<Error> {
-  let detail = "";
-  try {
-    const body = (await res.json()) as { error?: string };
-    detail = body.error ? `: ${body.error}` : "";
-  } catch {
-    /* ignore */
-  }
-  return new Error(`Could not load ${what} (HTTP ${res.status}${detail})`);
-}
-
+// Registry is baked at build time into static files under /registry/.
 export async function fetchRegistryApps(signal?: AbortSignal): Promise<RegistryApp[]> {
-  const res = await fetch("/api/registry", { signal, cache: "no-store" });
-  if (!res.ok) throw await failure(res, "the app registry");
+  const res = await fetch("/registry/index.json", { signal });
+  if (!res.ok) throw new Error(`Could not load the app registry (HTTP ${res.status})`);
   const data = (await res.json()) as { apps?: RegistryApp[] };
   return data.apps ?? [];
 }
 
 export async function fetchRegistryHtml(slug: string, signal?: AbortSignal): Promise<string> {
-  const res = await fetch(`/api/registry/${encodeURIComponent(slug)}`, { signal, cache: "no-store" });
-  if (!res.ok) throw await failure(res, `registry app "${slug}"`);
+  const res = await fetch(`/registry/${encodeURIComponent(slug)}.html`, { signal });
+  if (!res.ok) throw new Error(`Could not load registry app "${slug}" (HTTP ${res.status})`);
   return res.text();
 }
