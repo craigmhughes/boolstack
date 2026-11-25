@@ -16,6 +16,7 @@ import { FeatureCard } from "./feature-card";
 import { GradientBackground } from "./GradientBackground";
 import { headerVariants, pushVariants, screenSpring } from "../lib/motion";
 import { ErrorBadge, RegistryInfoPanel, RegistryPreviewFrame } from "./RegistryPreview";
+import { LiveStatus } from "./LiveStatus";
 
 const MOBILE_QUERY = "(max-width: 639px)";
 
@@ -46,7 +47,8 @@ function message(e: unknown) {
   return e instanceof Error ? e.message : "Something went wrong.";
 }
 
-const ghostOnBlack = "cursor-pointer bg-transparent text-slate-100 hover:bg-slate-800 hover:text-slate-100";
+const ghostOnBlack =
+  "cursor-pointer bg-transparent text-slate-100 hover:bg-slate-800 hover:text-slate-100 focus-visible:ring-blue-400";
 
 export function RegistryBrowser({
   open,
@@ -73,22 +75,41 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
   const [htmlAttempt, setHtmlAttempt] = useState(0);
   const [htmlError, setHtmlError] = useState<{ slug: string; attempt: number; error: string } | null>(null);
   const [adding, setAdding] = useState(false);
+  // Name shown in the Add dialog title; cached so it never renders empty while the dialog closes.
+  const [addName, setAddName] = useState("");
+  const detailRef = useRef<HTMLDivElement>(null);
+  const lastSlugRef = useRef<string | null>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const restoredRef = useRef(false);
+  const addedRef = useRef(false);
 
   const slug = selected?.slug ?? null;
   const html = slug ? (htmls[slug] ?? null) : null;
   const hasHtml = html !== null;
 
+  const restoreFocus = useCallback(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    previousFocusRef.current?.focus?.();
+  }, []);
+
   // Focus management and body scroll lock.
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    restoredRef.current = false;
     closeRef.current?.focus();
+    // Re-assert after the opener (e.g. a closing menu) has finished its own focus handling.
+    const raf = requestAnimationFrame(() => {
+      if (!restoredRef.current) closeRef.current?.focus();
+    });
     const overflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
+      cancelAnimationFrame(raf);
       document.body.style.overflow = overflow;
-      previous?.focus?.();
+      restoreFocus();
     };
-  }, []);
+  }, [restoreFocus]);
 
   // App list.
   useEffect(() => {
@@ -119,7 +140,11 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
     return () => ctrl.abort();
   }, [slug, hasHtml, htmlAttempt]);
 
-  const close = useCallback(() => onOpenChange(false), [onOpenChange]);
+  // Restore focus right away rather than after the exit animation.
+  const close = useCallback(() => {
+    restoreFocus();
+    onOpenChange(false);
+  }, [onOpenChange, restoreFocus]);
 
   const back = useCallback(() => {
     setDir(-1);
@@ -129,6 +154,31 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
   // Start each screen at the top.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: 0 });
+  }, [slug]);
+
+  // Move focus with the screen: detail heading on select, the opened card on back.
+  useEffect(() => {
+    if (slug) {
+      const h2 = detailRef.current?.querySelector("h2");
+      if (h2) {
+        h2.setAttribute("tabindex", "-1");
+        h2.classList.add("outline-none");
+        h2.focus({ preventScroll: true });
+      }
+      return;
+    }
+    const last = lastSlugRef.current;
+    if (!last) return;
+    const card = scrollRef.current?.querySelector<HTMLElement>(`[data-registry-slug="${CSS.escape(last)}"]`);
+    const target = card?.matches("button, a") ? card : card?.querySelector<HTMLElement>("button, a, [tabindex]");
+    if (target) {
+      target.focus({ preventScroll: true });
+    } else {
+      const h2 = scrollRef.current?.querySelector("h2");
+      h2?.setAttribute("tabindex", "-1");
+      h2?.classList.add("outline-none");
+      h2?.focus({ preventScroll: true });
+    }
   }, [slug]);
 
   // Mirror `adding` into a ref so the Escape listener never reads a stale value.
@@ -158,6 +208,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
       : null;
 
   const select = (app: RegistryApp) => {
+    lastSlugRef.current = app.slug;
     setHtmlError(null);
     setDir(1);
     setSelected(app);
@@ -177,6 +228,17 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
       className="fixed inset-0 z-50 flex flex-col bg-black text-slate-100"
     >
       <GradientBackground className="!fixed !inset-0 !min-h-0 -z-10 pointer-events-none" />
+      <LiveStatus
+        message={
+          selected
+            ? ""
+            : listLoading
+              ? "Loading registry"
+              : listError
+                ? `Could not load registry. ${listError}`
+                : `${apps?.length ?? 0} ${apps?.length === 1 ? "app" : "apps"} available`
+        }
+      />
       <motion.header
         variants={headerVariants}
         initial="hidden"
@@ -202,7 +264,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
                   className={ghostOnBlack}
                   onClick={back}
                 >
-                  <IconArrowLeft />
+                  <IconArrowLeft aria-hidden="true" />
                   <span>Back</span>
                 </Button>
               </motion.div>
@@ -213,7 +275,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
           </div>
         </div>
         <Button ref={closeRef} variant="ghost" aria-label="Close registry" className={ghostOnBlack} onClick={close}>
-          <IconX />
+          <IconX aria-hidden="true" />
           <span className="max-md:hidden">Close</span>
         </Button>
       </motion.header>
@@ -222,6 +284,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
         <AnimatePresence mode="popLayout" custom={dir} initial={false}>
         {selected ? (
           <motion.div
+            ref={detailRef}
             key={selected.slug}
             custom={dir}
             variants={pushVariants}
@@ -234,7 +297,10 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
             <RegistryInfoPanel
               app={selected}
               ready={hasHtml}
-              onAdd={() => setAdding(true)}
+              onAdd={() => {
+                setAddName(selected.name);
+                setAdding(true);
+              }}
               onBack={back}
             />
             <RegistryPreviewFrame
@@ -269,13 +335,11 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
 
             {listLoading ? (
               <div
-                aria-live="polite"
-                aria-busy="true"
+                aria-hidden="true"
                 className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
               >
-                <span className="sr-only">Loading registry...</span>
                 {[0, 1, 2, 3].map((i) => (
-                  <div key={i} className="h-[230px] animate-pulse rounded-[24px] bg-slate-800/60" />
+                  <div key={i} className="h-[230px] motion-safe:animate-pulse rounded-[24px] bg-slate-800/60" />
                 ))}
               </div>
             ) : listError ? (
@@ -284,7 +348,7 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
                 <Button
                   type="button"
                   onClick={() => setAttempt((n) => n + 1)}
-                  className="cursor-pointer bg-blue-500 text-white hover:bg-blue-600"
+                  className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700"
                 >
                   Retry
                 </Button>
@@ -304,8 +368,9 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
                   <button
                     key={app.slug}
                     type="button"
+                    data-registry-slug={app.slug}
                     onClick={() => select(app)}
-                    className="cursor-pointer rounded-xl p-1 outline-none focus-visible:ring-3 focus-visible:ring-blue-500/60"
+                    className="cursor-pointer rounded-xl p-1 outline-none focus-visible:ring-3 focus-visible:ring-blue-400"
                   >
                     <AppIcon
                       showLabel
@@ -320,15 +385,16 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
             ) : (
               <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                 {apps?.map((app) => (
-                  <FeatureCard
-                    key={app.slug}
-                    title={app.name}
-                    description={app.description}
-                    icon={app.icon}
-                    color={app.color}
-                    variant={app.variant}
-                    onClick={() => select(app)}
-                  />
+                  <div key={app.slug} data-registry-slug={app.slug} className="contents">
+                    <FeatureCard
+                      title={app.name}
+                      description={app.description}
+                      icon={app.icon}
+                      color={app.color}
+                      variant={app.variant}
+                      onClick={() => select(app)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
@@ -338,8 +404,16 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
       </div>
 
       <Dialog open={adding && !!selected && hasHtml} onOpenChange={setAdding}>
-        <DialogContent className="md:max-w-[min(56rem,calc(100%-2rem))]">
-          <DialogTitle className="sr-only">Add {selected?.name} to my apps</DialogTitle>
+        <DialogContent
+          className="md:max-w-[min(56rem,calc(100%-2rem))]"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            // After a successful add the overlay closes and the page focuses the FAB.
+            if (addedRef.current) return;
+            detailRef.current?.querySelector<HTMLElement>("[data-add-button]")?.focus();
+          }}
+        >
+          <DialogTitle className="sr-only">Add {addName} to my apps</DialogTitle>
           <DialogDescription className="sr-only">Add a copy of this app to your library.</DialogDescription>
           {selected && html !== null && (
             <ArtifactEdit
@@ -354,8 +428,9 @@ function RegistryOverlay({ onOpenChange }: { onOpenChange: (open: boolean) => vo
                 mobile_variant: selected.mobile_variant,
               }}
               onSaved={() => {
+                addedRef.current = true;
                 setAdding(false);
-                onOpenChange(false);
+                close();
               }}
             />
           )}

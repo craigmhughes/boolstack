@@ -75,7 +75,7 @@ export function GradientBackground({ children, layers = defaultLayers, className
           aria-hidden="true"
         />
       )}
-      <div className="relative z-[1]" id="gradient-background-children">
+      <div className="relative z-[1]" data-gradient-children>
         {children}
       </div>
     </div>

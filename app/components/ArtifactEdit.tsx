@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import {
   Field,
   FieldDescription,
+  FieldError,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"
@@ -23,7 +24,9 @@ import type { Artifact } from "../lib/types"
 import type { ArtifactTemplate } from "../lib/registry-types"
 import { DialogClose, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { IconPicker } from "./IconPicker"
-import { FileUpload } from "./file-upload"
+import { FileUpload, isFileOversized } from "./file-upload"
+import { LiveStatus } from "./LiveStatus"
+import { useRovingRadio } from "../lib/use-roving-radio"
 import { FeatureCard, featureCardVariantNames } from "./feature-card"
 import { cn } from "@/lib/utils"
 import { BrandTag } from "./brand"
@@ -39,15 +42,22 @@ import {
 } from "@tabler/icons-react"
 
 const PRESET_COLORS = [
-  "#ff5003",
-  "#ffd23f",
-  "#b8dfe0",
-  "#c4f07a",
-  "#f4a7c0",
-  "#7aa2ff",
-  "#004b2c",
-  "#171717",
+  { value: "#ff5003", name: "Orange" },
+  { value: "#ffd23f", name: "Yellow" },
+  { value: "#b8dfe0", name: "Light blue" },
+  { value: "#c4f07a", name: "Lime green" },
+  { value: "#f4a7c0", name: "Pink" },
+  { value: "#7aa2ff", name: "Periwinkle blue" },
+  { value: "#004b2c", name: "Dark green" },
+  { value: "#171717", name: "Near black" },
 ]
+
+const NAME_ID = "artifact-edit-name"
+const NAME_DESC_ID = "artifact-edit-name-desc"
+const NAME_ERROR_ID = "artifact-edit-name-error"
+const FILE_ID = "artifact-edit-file"
+const FILE_DESC_ID = "artifact-edit-file-desc"
+const FILE_ERROR_ID = "artifact-edit-file-error"
 
 function PlaceholderTile() {
   return (
@@ -79,6 +89,9 @@ export function ArtifactEdit(
   const [file, setFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nameError, setNameError] = useState<string | null>(null)
+  const [fileError, setFileError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
   const { db } = useGateway()
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -88,20 +101,35 @@ export function ArtifactEdit(
   useEffect(() => {
     scrollRef.current?.focus({ preventScroll: true })
     scrollRef.current?.scrollTo({ top: 0 })
+    // Re-assert next frame: on a cold first open the closing dropdown can still
+    // steal focus after mount.
+    const raf = requestAnimationFrame(() => {
+      const el = scrollRef.current
+      if (el && !el.contains(document.activeElement)) el.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(raf)
   }, [])
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    // aria-disabled (not disabled) keeps focus on the button, so guard here.
+    if (saving) return
+    const nextNameError = !isEdit && !name.trim() ? "Enter an app name" : null
+    const nextFileError = !isEdit && !isTemplate && !file ? "Choose an HTML file" : null
+    setNameError(nextNameError)
+    setFileError(nextFileError)
+    if (nextNameError || nextFileError || isFileOversized(file)) {
+      setError(null)
+      document.getElementById(nextNameError ? NAME_ID : FILE_ID)?.focus()
+      return
+    }
     if (!db) {
       setError("Database is not ready yet")
       return
     }
-    if (!isEdit && !isTemplate && !file) {
-      setError("Choose an HTML file")
-      return
-    }
 
     setSaving(true)
+    setSaved(false)
     setError(null)
     try {
       const html = template ? template.htmlfile : file ? await file.text() : undefined
@@ -118,20 +146,39 @@ export function ArtifactEdit(
         await insertArtifact(db, { namespace: name.trim(), htmlfile: html ?? "", ...theme })
       }
       scheduleBackup(db)
+      setSaved(true)
       onSaved?.()
     } catch (err) {
       console.error("Error saving artifact:", err)
-      setError(
-        isDuplicateNamespaceError(err)
-          ? "An app with that name already exists"
-          : err instanceof Error
-            ? err.message
-            : "Something went wrong while saving",
-      )
+      if (isDuplicateNamespaceError(err)) {
+        setNameError("An app with that name already exists")
+        document.getElementById(NAME_ID)?.focus()
+      } else {
+        setError(err instanceof Error ? err.message : "Something went wrong while saving")
+      }
     } finally {
       setSaving(false)
     }
   }
+
+  const swatchIndex = PRESET_COLORS.findIndex((c) => c.value === selectedColor.toLowerCase())
+  const swatches = useRovingRadio({
+    count: PRESET_COLORS.length,
+    selectedIndex: swatchIndex,
+    onSelect: (i) => setSelectedColor(PRESET_COLORS[i].value),
+  })
+  const desktopStyles = useRovingRadio({
+    count: featureCardVariantNames.length,
+    selectedIndex: Number(selectedVariant) - 1,
+    onSelect: (i) => setSelectedVariant(String(i + 1)),
+    columns: 3,
+  })
+  const mobileStyles = useRovingRadio({
+    count: appIconVariantNames.length,
+    selectedIndex: mobileVariant - 1,
+    onSelect: (i) => setMobileVariant(i + 1),
+    columns: 3,
+  })
 
   const title = artifact
     ? `Edit ${artifact.namespace}`
@@ -156,24 +203,44 @@ export function ArtifactEdit(
     </DialogDescription>
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="mt-4 flex flex-col gap-4 md:mt-3 md:grid md:grid-cols-2 md:items-start md:gap-6"
     >
       <FieldGroup className="max-md:contents md:flex md:flex-col md:gap-3">
         <Field>
-          <FieldLabel htmlFor="artifact-edit-name">App Name</FieldLabel>
+          <FieldLabel htmlFor={NAME_ID}>
+            App Name
+            {!isEdit && (
+              <span className="text-xs font-normal text-muted-foreground">(required)</span>
+            )}
+          </FieldLabel>
           <Input
-            id="artifact-edit-name"
+            id={NAME_ID}
             name="name"
             placeholder="Evil Rabbit"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={(event) => {
+              setName(event.target.value)
+              if (nameError) setNameError(null)
+            }}
             disabled={isEdit}
             required
+            aria-invalid={nameError ? true : undefined}
+            aria-describedby={
+              [isEdit ? NAME_DESC_ID : null, nameError ? NAME_ERROR_ID : null]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
           />
           {isEdit && (
-            <FieldDescription>
+            <FieldDescription id={NAME_DESC_ID}>
               Name is the app&apos;s storage namespace and can&apos;t be changed
             </FieldDescription>
+          )}
+          {nameError && (
+            <FieldError id={NAME_ERROR_ID} className="text-red-400">
+              {nameError}
+            </FieldError>
           )}
         </Field>
         <Field>
@@ -190,7 +257,7 @@ export function ArtifactEdit(
         </Field>
         {isTemplate ? (
           <div className="flex items-start gap-2 text-sm text-muted-foreground">
-            <IconPackageImport size={16} className="mt-0.5 shrink-0" />
+            <IconPackageImport size={16} aria-hidden="true" className="mt-0.5 shrink-0" />
             <span>
               This app is copied from the registry. Your copy is stored on this device, and keeps working even if the registry changes.
             </span>
@@ -201,13 +268,24 @@ export function ArtifactEdit(
             label={isEdit ? "Replace HTML file (optional)" : "App File"}
             name="file"
             required={!isEdit}
+            id={FILE_ID}
+            invalid={!!fileError}
+            describedBy={[FILE_DESC_ID, fileError ? FILE_ERROR_ID : null].filter(Boolean).join(" ")}
             accept={[".html", "text/html"]}
-            onFileChange={setFile}
+            onFileChange={(next) => {
+              setFile(next)
+              if (fileError) setFileError(null)
+            }}
           />
-          <FieldDescription>
-            Your app must be a self-contained HTML file which has no external dependencies.
-            <span className="text-xs whitespace-nowrap mt-12">(no external CSS or JavaScript files)</span>
+          <FieldDescription id={FILE_DESC_ID}>
+            Your app must be a self-contained HTML file which has no external dependencies.{" "}
+            <span className="text-xs">(no external CSS or JavaScript files)</span>
           </FieldDescription>
+          {fileError && (
+            <FieldError id={FILE_ERROR_ID} className="text-red-400">
+              {fileError}
+            </FieldError>
+          )}
         </Field>
         )}
         <Field>
@@ -223,14 +301,15 @@ export function ArtifactEdit(
         <Tabs value={previewTab} onValueChange={setPreviewTab} className="my-4 items-center max-md:order-first md:my-0">
           <TabsList>
             <TabsTrigger value="desktop">
-              <IconDeviceDesktop /> Desktop
+              <IconDeviceDesktop aria-hidden="true" /> Desktop
             </TabsTrigger>
             <TabsTrigger value="mobile">
-              <IconDeviceMobile /> Mobile
+              <IconDeviceMobile aria-hidden="true" /> Mobile
             </TabsTrigger>
           </TabsList>
           <TabsContent value="desktop" className="w-full">
-            <div className="mx-auto w-full max-w-xs md:h-[136px] md:overflow-hidden">
+            <p className="sr-only">Preview of the card as it will appear</p>
+            <div aria-hidden="true" className="mx-auto w-full max-w-xs md:h-[136px] md:overflow-hidden">
               <FeatureCard
                 preview
                 title={name.trim() || "Your app"}
@@ -243,7 +322,8 @@ export function ArtifactEdit(
             </div>
           </TabsContent>
           <TabsContent value="mobile" className="w-full">
-            <div className="mx-auto w-full max-w-[220px] md:h-[136px] md:max-w-none md:overflow-hidden">
+            <p className="sr-only">Preview of the icon as it will appear</p>
+            <div aria-hidden="true" className="mx-auto w-full max-w-[220px] md:h-[136px] md:max-w-none md:overflow-hidden">
             <div className="mx-auto w-full max-w-[220px] rounded-[28px] border border-slate-700 bg-black p-4 shadow-[0_0_40px_rgba(37,99,235,.25)] md:origin-top md:scale-[0.68]">
               <div className="grid grid-cols-3 gap-x-2 gap-y-4">
                 {[0, 1].map((i) => (
@@ -266,26 +346,34 @@ export function ArtifactEdit(
           </TabsContent>
         </Tabs>
         <Field>
-          <FieldLabel htmlFor="artifact-edit-color">Colour</FieldLabel>
+          <FieldLabel id="artifact-edit-color-label">Colour</FieldLabel>
           <div className="flex flex-wrap items-center gap-2">
-            {PRESET_COLORS.map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                aria-label={`Use colour ${preset}`}
-                aria-pressed={selectedColor.toLowerCase() === preset}
-                onClick={() => setSelectedColor(preset)}
-                style={{ backgroundColor: preset }}
-                className={cn(
-                  "size-8 rounded-full border border-black/20 outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-                  selectedColor.toLowerCase() === preset &&
-                    "ring-2 ring-blue-500 ring-offset-2 ring-offset-background",
-                )}
-              />
-            ))}
+            <div
+              role="radiogroup"
+              aria-labelledby="artifact-edit-color-label"
+              className="flex flex-wrap items-center gap-2"
+              {...swatches.groupProps}
+            >
+              {PRESET_COLORS.map((preset, index) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  aria-label={preset.name}
+                  {...swatches.getItemProps(index)}
+                  onClick={() => setSelectedColor(preset.value)}
+                  style={{ backgroundColor: preset.value }}
+                  className={cn(
+                    "size-8 rounded-full border border-black/20 ring-1 ring-white/40 outline-none focus-visible:ring-3 focus-visible:ring-ring",
+                    index === swatchIndex &&
+                      "ring-2 ring-blue-500 ring-offset-2 ring-offset-background",
+                  )}
+                />
+              ))}
+            </div>
             <Input
               id="artifact-edit-color"
               type="color"
+              aria-label="Custom colour"
               className="h-8 w-12 p-1"
               value={selectedColor}
               onChange={(event) => setSelectedColor(event.target.value)}
@@ -298,6 +386,7 @@ export function ArtifactEdit(
             role="radiogroup"
             aria-labelledby="artifact-edit-variant-label"
             className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-1.5"
+            {...desktopStyles.groupProps}
           >
             {featureCardVariantNames.map((variantName, index) => {
               const n = index + 1
@@ -306,15 +395,11 @@ export function ArtifactEdit(
                 <button
                   key={variantName}
                   type="button"
-                  role="radio"
-                  aria-checked={checked}
                   aria-label={`${n}. ${variantName}`}
-                  onClick={() => {
-                    setSelectedVariant(String(n))
-                    setPreviewTab("desktop")
-                  }}
+                  {...desktopStyles.getItemProps(index)}
+                  onClick={() => setSelectedVariant(String(n))}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:p-0.5",
+                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-xs capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring md:p-0.5",
                     checked ? "bg-blue-500/15 ring-2 ring-blue-500" : "hover:bg-muted",
                   )}
                 >
@@ -347,6 +432,7 @@ export function ArtifactEdit(
             role="radiogroup"
             aria-labelledby="artifact-edit-mobile-label"
             className="grid grid-cols-3 gap-2 min-[940px]:grid-cols-6 min-[940px]:gap-1"
+            {...mobileStyles.groupProps}
           >
             {appIconVariantNames.map((variantName, index) => {
               const n = index + 1
@@ -355,18 +441,18 @@ export function ArtifactEdit(
                 <button
                   key={variantName}
                   type="button"
-                  role="radio"
-                  aria-checked={checked}
-                  onClick={() => {
-                    setMobileVariant(n)
-                    setPreviewTab("mobile")
-                  }}
+                  aria-label={`${n}. ${variantName}`}
+                  {...mobileStyles.getItemProps(index)}
+                  onClick={() => setMobileVariant(n)}
                   className={cn(
-                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-[11px] capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring/50 min-[940px]:p-0.5",
+                    "flex flex-col items-center gap-1 rounded-lg border border-transparent p-1.5 text-xs capitalize outline-none focus-visible:ring-3 focus-visible:ring-ring min-[940px]:p-0.5",
                     checked ? "bg-blue-500/15 ring-2 ring-blue-500" : "hover:bg-muted",
                   )}
                 >
-                  <span className="flex w-full justify-center rounded-lg bg-black p-2 min-[940px]:p-0">
+                  <span
+                    aria-hidden="true"
+                    className="flex w-full justify-center rounded-lg bg-black p-2 min-[940px]:p-0"
+                  >
                     <AppIcon
                       size="sm"
                       variant={n}
@@ -385,21 +471,35 @@ export function ArtifactEdit(
       {error && (
         <div
           role="alert"
-          className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-[11px] text-red-400 md:col-span-2"
+          className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-xs text-red-400 md:col-span-2"
         >
-          <IconAlertHexagon size={16} className="shrink-0" />
+          <IconAlertHexagon size={16} aria-hidden="true" className="shrink-0" />
           <span>{error}</span>
         </div>
       )}
-      <div className="sticky -bottom-4 -mx-4 flex flex-col gap-2 border-t bg-popover px-4 pt-3 pb-4 md:col-span-2 md:flex-row md:gap-3">
+      <div className="sticky -bottom-4 [@media(max-height:500px)]:static -mx-4 flex flex-col gap-2 border-t bg-popover px-4 pt-3 pb-4 md:col-span-2 md:flex-row md:gap-3">
         <Button
           type="submit"
-          disabled={saving}
-          className="w-full rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600 md:h-11 md:flex-1 md:p-0"
+          aria-disabled={saving || undefined}
+          aria-busy={saving || undefined}
+          className="w-full rounded-md bg-blue-600 p-5 text-white hover:bg-blue-700 aria-disabled:opacity-70 md:h-11 md:flex-1 md:p-0"
         >
-          {saving ? <Spinner /> : isEdit ? <IconDeviceFloppy size={16} /> : <IconPlus size={16} />}
-          {isEdit ? "Save changes" : isTemplate ? "Add to my apps" : "Add app"}
+          {saving ? (
+            <Spinner />
+          ) : isEdit ? (
+            <IconDeviceFloppy size={16} aria-hidden="true" />
+          ) : (
+            <IconPlus size={16} aria-hidden="true" />
+          )}
+          {saving
+            ? "Saving…"
+            : isEdit
+              ? "Save changes"
+              : isTemplate
+                ? "Add to my apps"
+                : "Add app"}
         </Button>
+        <LiveStatus message={saving ? "Saving app" : saved ? "App saved" : ""} />
         <DialogClose asChild>
           <Button variant="ghost" type="button" className="w-full p-5 md:h-11 md:flex-1 md:p-0">
             Cancel

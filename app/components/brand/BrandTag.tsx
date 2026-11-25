@@ -17,7 +17,7 @@ export function BrandTag({ tone = 'blue', className, children }: BrandTagProps) 
     <Badge
       variant="secondary"
       className={cn(
-        "border px-3 py-3 text-[11px] rounded-sm",
+        "border px-3 py-3 text-xs rounded-sm",
         toneClasses[tone],
         className
       )}

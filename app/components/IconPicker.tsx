@@ -13,6 +13,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Spinner } from "@/components/ui/spinner"
+import { LiveStatus } from "./LiveStatus"
+import { useRovingRadio } from "../lib/use-roving-radio"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   isTablerIconName,
@@ -23,6 +25,7 @@ import {
 } from "../lib/tabler-icons"
 
 const MAX_RESULTS = 120
+const GRID_COLUMNS = 6 // keep in sync with grid-cols-6 below
 
 type IconPickerProps = {
   id?: string
@@ -46,7 +49,24 @@ export function IconPicker({ id, value, onChange }: IconPickerProps) {
     return key ? names.filter((name) => toSearchKey(name).includes(key)) : names
   }, [names, deferredQuery])
 
-  const visible = matches.slice(0, MAX_RESULTS)
+  const visible = useMemo(
+    () => (icons ? matches.slice(0, MAX_RESULTS).filter((name) => icons[name]) : []),
+    [icons, matches],
+  )
+
+  const roving = useRovingRadio({
+    count: visible.length,
+    selectedIndex: value ? visible.indexOf(value) : -1,
+    onSelect: () => {},
+    columns: GRID_COLUMNS,
+    selectOnMove: false,
+  })
+
+  const statusMessage = !icons
+    ? "Loading icons"
+    : visible.length === 0
+      ? "No icons found"
+      : `Showing ${visible.length} of ${matches.length}`
 
   const handleOpenChange = (nextOpen: boolean) => {
     setOpen(nextOpen)
@@ -67,6 +87,7 @@ export function IconPicker({ id, value, onChange }: IconPickerProps) {
           id={id}
           type="button"
           variant="outline"
+          aria-label={value ? `Icon: ${tablerIconLabel(value)}` : "Choose an icon"}
           className="w-full justify-start gap-2"
         >
           {value ? (
@@ -85,25 +106,28 @@ export function IconPicker({ id, value, onChange }: IconPickerProps) {
               onChange={(event) => setQuery(event.target.value)}
             />
             <InputGroupAddon>
-              {icons ? <IconSearch aria-hidden="true" /> : <Spinner />}
+              {icons ? <IconSearch aria-hidden="true" /> : <Spinner aria-hidden="true" />}
             </InputGroupAddon>
           </InputGroup>
 
           <ScrollArea className="h-64">
             {icons && visible.length === 0 ? (
-              <Empty className="p-4">
-                <EmptyHeader>
-                  <EmptyTitle>No icons found</EmptyTitle>
-                </EmptyHeader>
-              </Empty>
+              <div aria-hidden="true">
+                <Empty className="p-4">
+                  <EmptyHeader>
+                    <EmptyTitle>No icons found</EmptyTitle>
+                  </EmptyHeader>
+                </Empty>
+              </div>
             ) : (
               <TooltipProvider>
                 <div
-                  role="group"
+                  role="radiogroup"
                   aria-label="Icons"
                   className="grid grid-cols-6 gap-1 pr-3"
+                  {...roving.groupProps}
                 >
-                  {visible.map((name) => {
+                  {visible.map((name, index) => {
                     const Icon = icons?.[name]
                     if (!Icon) {
                       return null
@@ -117,7 +141,7 @@ export function IconPicker({ id, value, onChange }: IconPickerProps) {
                             size="icon"
                             variant={name === value ? "secondary" : "ghost"}
                             aria-label={label}
-                            aria-pressed={name === value}
+                            {...roving.getItemProps(index)}
                             onClick={() => handleSelect(name)}
                           >
                             <Icon aria-hidden="true" className="size-5" />
@@ -132,11 +156,11 @@ export function IconPicker({ id, value, onChange }: IconPickerProps) {
             )}
           </ScrollArea>
 
-          {icons ? (
-            <p className="text-muted-foreground text-xs">
-              Showing {visible.length} of {matches.length}
-            </p>
-          ) : null}
+          <LiveStatus
+            visible
+            className="text-muted-foreground text-xs"
+            message={statusMessage}
+          />
         </div>
       </PopoverContent>
     </Popover>
@@ -170,7 +194,11 @@ export function ArtifactIcon({ icon, className }: ArtifactIconProps) {
   }, [icon, isTabler])
 
   if (!isTabler) {
-    return <span className={className}>{icon}</span>
+    return (
+      <span aria-hidden="true" className={className}>
+        {icon}
+      </span>
+    )
   }
 
   if (entry?.name !== icon) {

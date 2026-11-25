@@ -52,7 +52,9 @@ export function AppIcon({
     }
     extra = 'shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_6px_14px_rgba(0,0,0,.45)]'
   } else if (v === 5) {
-    style = { borderColor: color, color }
+    // Glyph and border sit on black: lighten dark colours so they reach 3:1.
+    const lit = inkForColor(color) === '#ffffff' ? `color-mix(in srgb, ${color} 40%, white)` : color
+    style = { borderColor: lit, color: lit }
     extra = 'bg-black border-2'
   } else if (v === 6) {
     style = {
@@ -76,7 +78,7 @@ export function AppIcon({
         <ArtifactIcon icon={icon} className={glyphClass[size]} />
       </div>
       {showLabel && (
-        <span className="text-[11px] leading-tight text-slate-100 text-center line-clamp-2 break-words w-full">
+        <span className="text-xs leading-tight text-slate-100 text-center line-clamp-2 break-words w-full">
           {title}
         </span>
       )}

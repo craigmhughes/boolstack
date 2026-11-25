@@ -10,7 +10,7 @@ export function BrandWordmark({ className, style }: { className?: string; style?
       aria-label="Boolstack"
       viewBox="584.317 469.818 439.133 75.282"
       fill="currentColor"
-      className={cn("block w-auto", className)}
+      className={cn("block w-auto overflow-visible", className)}
       style={style}
     >
       <path d={WORDMARK_PATH} />

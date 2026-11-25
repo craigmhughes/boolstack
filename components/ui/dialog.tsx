@@ -90,7 +90,7 @@ function DialogContent({
             <motion.div
               data-slot="dialog-content"
               className={cn(
-                "dark brand-dark fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 overflow-visible rounded-xl bg-slate-950 p-0 text-sm text-slate-100 ring-1 ring-slate-800 outline-none sm:max-w-sm",
+                "dark brand-dark fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-xl bg-slate-950 p-0 text-sm text-slate-100 ring-1 ring-slate-800 outline-none sm:max-w-sm",
                 className
               )}
               style={{ x: "-50%", y: "-50%" }}
@@ -123,7 +123,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex flex-col gap-2 pr-10", className)}
       {...props}
     />
   )

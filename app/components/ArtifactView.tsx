@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { IconX } from "@tabler/icons-react";
 import { Artifact } from "../lib/types";
@@ -18,6 +18,8 @@ import "ldrs/react/Grid.css";
 import { BrandTag } from "./brand";
 import { BrandLogoMotion } from "./brand/BrandLogoMotion";
 import { headerVariants, pushVariants, recedeAnimate } from "../lib/motion";
+import { LiveStatus } from "./LiveStatus";
+import { useReducedMotion } from "../lib/use-reduced-motion";
 
 type ArtifactData = {
   activeArtifact: Artifact | null;
@@ -59,6 +61,12 @@ export function ArtifactView({
   const [loaded, setLoaded] = useState<{ namespace: string; url: string } | null>(null);
   const artifactURLs = useRef(new Map<string, string>());
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const titleId = useId();
+  const reducedMotion = useReducedMotion();
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   const viewerOpen = activeArtifact !== null;
   // Runs on mount too, so a viewer restored from sessionStorage is reported as open.
@@ -83,6 +91,12 @@ export function ArtifactView({
   const view = activeArtifact ? { artifact: activeArtifact, url: activeURL } : shown;
 
   const setActiveArtifact = useCallback((artifact: Artifact | null) => {
+    if (artifact) {
+      // Capture the opener now, before the page behind the viewer goes inert and drops focus.
+      const el = document.activeElement;
+      if (el instanceof HTMLElement && el !== document.body) openerRef.current = el;
+      setLoadError(null);
+    }
     setActiveArtifactState(artifact);
     // Drop the previous URL so the iframe only mounts after hydration finishes.
     setLoaded(prev => (artifact && prev?.namespace === artifact.namespace ? prev : null));
@@ -95,6 +109,31 @@ export function ArtifactView({
     } catch {
       // sessionStorage unavailable; the view still works.
     }
+  }, []);
+
+  const viewerOpenNow = activeArtifact !== null;
+  useEffect(() => {
+    if (!viewerOpenNow) {
+      return;
+    }
+    closeRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented) {
+        setActiveArtifact(null);
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [viewerOpenNow, setActiveArtifact]);
+
+  const restoreFocus = useCallback(() => {
+    const opener = openerRef.current;
+    openerRef.current = null;
+    if (opener?.isConnected) {
+      opener.focus();
+      return;
+    }
+    document.querySelector<HTMLElement>("[data-apps-heading]")?.focus();
   }, []);
 
   useEffect(() => {
@@ -137,6 +176,9 @@ export function ArtifactView({
       }
     })().catch(error => {
       console.error("Failed to get artifact URL:", error);
+      if (!cancelled) {
+        setLoadError(namespace);
+      }
     });
 
     return () => {
@@ -145,7 +187,7 @@ export function ArtifactView({
       window.removeEventListener("pagehide", onPageHide);
       void sync.dispose();
     };
-  }, [db, namespace]);
+  }, [db, namespace, attempt]);
 
   useEffect(() => {
     const urls = artifactURLs.current;
@@ -162,13 +204,13 @@ export function ArtifactView({
 
   return (
     <ArtifactViewContext.Provider value={contextValue}>
-      <AnimatePresence initial={false}>
+      <AnimatePresence initial={false} onExitComplete={restoreFocus}>
         {activeArtifact && view ? (
           <motion.div
             key="viewer"
             role="dialog"
             aria-modal="true"
-            aria-label={view.artifact.namespace}
+            aria-labelledby={titleId}
             className="fixed inset-0 z-50 flex flex-col bg-black text-slate-100"
             custom={1}
             variants={pushVariants}
@@ -186,18 +228,21 @@ export function ArtifactView({
                 <BrandLogoMotion size="sm" showWordmark={false} />
                 <div className="h-5 w-px shrink-0 bg-slate-700" />
                 <div className="flex min-w-0 items-center gap-2">
-                  <ArtifactIcon icon={view.artifact.icon} className="size-5 shrink-0" />
-                  <p className="truncate text-sm font-medium tracking-tight">{view.artifact.namespace}</p>
+                  <span aria-hidden="true" className="contents">
+                    <ArtifactIcon icon={view.artifact.icon} className="size-5 shrink-0" />
+                  </span>
+                  <h1 id={titleId} className="truncate text-sm font-medium tracking-tight">{view.artifact.namespace}</h1>
                 </div>
                 <BrandTag className="hidden py-1 px-2 text-[10px] md:inline-flex">Sandboxed</BrandTag>
               </div>
               <Button
+                ref={closeRef}
                 variant="ghost"
                 aria-label="Close app"
                 className="bg-transparent hover:bg-slate-800 text-slate-100 hover:text-slate-100 cursor-pointer"
                 onClick={() => setActiveArtifact(null)}
               >
-                <IconX />
+                <IconX aria-hidden="true" />
                 <span className="max-md:hidden">Close</span>
               </Button>
             </motion.header>
@@ -213,7 +258,7 @@ export function ArtifactView({
                   <iframe
                     ref={iframeRef}
                     src={view.url}
-                    title={view.artifact.namespace}
+                    title={`${view.artifact.namespace} (embedded app)`}
                     sandbox="allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads"
                     className="w-full flex-1 border-0 bg-white" />
                 </motion.div>
@@ -225,13 +270,33 @@ export function ArtifactView({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <div className="flex flex-col items-center gap-8">
-                    <Grid size="60" speed="1.5" color="white" />
-                    <p className="text-[11px] tracking-wider text-slate-400">Loading app...</p>
-                  </div>
+                  {loadError === view.artifact.namespace ? (
+                    <div role="alert" className="flex flex-col items-center gap-4 px-6 text-center">
+                      <p className="text-sm text-slate-100">Couldn&apos;t load {view.artifact.namespace}.</p>
+                      <Button
+                        className="bg-blue-600 text-white hover:bg-blue-700"
+                        onClick={() => {
+                          setLoadError(null);
+                          setAttempt((n) => n + 1);
+                        }}
+                      >
+                        Retry
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-8">
+                      <span aria-hidden="true" className="contents">
+                        <Grid size="60" speed={reducedMotion ? "0" : "1.5"} color="white" />
+                      </span>
+                      <p aria-hidden="true" className="text-xs tracking-wider text-slate-400">Loading app...</p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
+            <LiveStatus
+              message={view.url || loadError === view.artifact.namespace ? "" : `Loading ${view.artifact.namespace}`}
+            />
           </motion.div>
         ) : null}
       </AnimatePresence>

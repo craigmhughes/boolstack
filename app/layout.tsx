@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { introInitScript } from "./lib/intro";
 
 const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
 
@@ -31,10 +32,14 @@ export default function RootLayout({
     <html
       lang="en"
       className={cn("h-full", "antialiased", "font-sans", dmSans.variable)}
-      style={{ colorScheme: 'dark' }}
+      style={{ colorScheme: 'dark', scrollPaddingBottom: '6rem' }}
       suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: introInitScript }} />
+      </head>
       <body className="min-h-full flex flex-col bg-black text-slate-100">
+        <div id="intro-cover" aria-hidden="true" />
         <ThemeProvider
           attribute="class"
           forcedTheme="light"
