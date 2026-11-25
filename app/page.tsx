@@ -27,7 +27,8 @@ import { GradientBackground } from "./components/GradientBackground";
 import { BrandLogo } from "./components/brand/BrandLogo";
 import { BrandLogoMotion } from "./components/brand/BrandLogoMotion";
 import { RegistryBrowser } from "./components/RegistryBrowser";
-import { IconPackageImport, IconPlus } from "@tabler/icons-react";
+import { IconBook, IconPackageImport, IconPlus } from "@tabler/icons-react";
+import Link from "next/link";
 import { LiveStatus } from "./components/LiveStatus";
 import { useReducedMotion } from "./lib/use-reduced-motion";
 import { IntroScreen } from "./components/IntroScreen";
@@ -194,6 +195,17 @@ export default function Home() {
               <BrandLogoMotion />
             </div>
           )}
+          <Button
+            asChild
+            variant="ghost"
+            size="lg"
+            className="border-slate-700 bg-transparent text-slate-100 hover:bg-slate-800 hover:text-slate-100 focus-visible:ring-blue-400"
+          >
+            <Link href="/guide">
+              <IconBook aria-hidden="true" />
+              User Guide
+            </Link>
+          </Button>
         </motion.header>
         <main id="main" tabIndex={-1} className="outline-none flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 pb-28">
         {shouldInitDb && (
