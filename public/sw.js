@@ -1,5 +1,5 @@
 // App-shell service worker. Registered by app/components/StoragePersistence.tsx.
-const CACHE = 'boolstack-shell-v1';
+const CACHE = 'boolstack-shell-v2';
 const PRECACHE = ['/', '/manifest.json'];
 
 // Precache the shell. Each URL is added on its own so one failure doesn't drop the rest.
