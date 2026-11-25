@@ -152,7 +152,7 @@ export default function Home() {
             key="cover"
             exit={{ opacity: 0, pointerEvents: "none" }}
             transition={{ duration: 0.5 }}
-            className="fixed h-full w-full flex justify-center items-center"
+            className="fixed z-50 h-full w-full flex justify-center items-center"
           >
             <GradientBackground
               showGrain

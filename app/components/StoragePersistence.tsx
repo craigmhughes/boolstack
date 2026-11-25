@@ -478,7 +478,7 @@ export function StoragePersistence({
             initial={{ opacity: 0, scale: 0.6, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.6, y: 20 }}
-            className="absolute bottom-0 left-0 m-4 z-10"
+            className="absolute bottom-0 left-0 m-4 z-[60]"
           >
             <Button
               ref={focusMinimizedButton}
