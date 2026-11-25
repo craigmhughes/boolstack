@@ -13,6 +13,44 @@ export function scheduleBackup(db: PGliteWithLive, delayMs = 1500): void {
   }, delayMs);
 }
 
+/** Cancels a queued backup, e.g. before the database is closed. */
+export function cancelPendingBackup(): void {
+  clearTimeout(backupTimer);
+}
+
+type PermissionHandle = FileSystemDirectoryHandle & {
+  queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
+  requestPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
+};
+
+/**
+ * Whether the stored backup folder can currently be written.
+ * Pass `interactive` only from a user gesture: it may show a permission prompt.
+ */
+export async function hasBackupPermission(
+  handle: FileSystemDirectoryHandle,
+  interactive = false,
+): Promise<boolean> {
+  const h = handle as PermissionHandle;
+  if (!h.queryPermission) return true;
+  if ((await h.queryPermission({ mode: "readwrite" })) === "granted") return true;
+  if (!interactive || !h.requestPermission) return false;
+  return (await h.requestPermission({ mode: "readwrite" })) === "granted";
+}
+
+/** Re-prompts for access to the stored backup folder. Call from a click handler. */
+export async function reauthorizeBackupSource(): Promise<boolean> {
+  const handle = await get('backupSource') as FileSystemDirectoryHandle | null;
+  if (!handle) return false;
+  return hasBackupPermission(handle, true);
+}
+
+/** `true` when a backup folder is stored but needs the user to re-grant access. */
+export async function backupNeedsReauthorization(): Promise<boolean> {
+  const handle = await get('backupSource') as FileSystemDirectoryHandle | null;
+  return !!handle && !(await hasBackupPermission(handle));
+}
+
 /**
  * This function retrieves the backup source from **IndexedDB**, dumps the 
  * database content, and *writes* it to a backup file.
@@ -28,6 +66,11 @@ export async function backup(db: PGliteWithLive) {
     console.debug("Backup source is not available");
     return;
   };
+  if (db.closed) return;
+  if (!(await hasBackupPermission(backupSource))) {
+    console.debug("Backup folder permission not granted");
+    return;
+  }
 
   const fileHandle = await backupSource.getFileHandle('backup.tar.gz', { create: true });
   const writable = await fileHandle.createWritable();
@@ -50,6 +93,7 @@ export async function restoreBackupFile() {
       if (!backupSource) {
         backupSource = await window.showDirectoryPicker();
       }
+      if (!(await hasBackupPermission(backupSource))) return undefined;
       const fileHandle = await backupSource.getFileHandle('backup.tar.gz', { create: true });
       return await fileHandle.getFile();
     } catch (err: unknown) {
@@ -89,6 +133,7 @@ export async function checkExistingBackup() {
     return false;
   }
   try {
+    if (!(await hasBackupPermission(backupSource))) return false;
     const fileHandle = await backupSource.getFileHandle('backup.tar.gz', { create: false });
     return (await fileHandle.getFile()).size > 0;
   } catch {

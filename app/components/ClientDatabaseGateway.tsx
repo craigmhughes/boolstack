@@ -7,7 +7,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { PGliteProvider } from '@electric-sql/pglite-react';
 import { live, PGliteWithLive } from '@electric-sql/pglite/live';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { checkExistingBackup } from '../lib/db';
+import { cancelPendingBackup, checkExistingBackup } from '../lib/db';
 
 export type DatabaseGateway = {
   db: PGliteWithLive | null;
@@ -133,7 +133,13 @@ export default function ClientDatabaseGateway({ children, backupFile }: { childr
 
     return () => {
       cancelled = true;
-      void instance?.close();
+      cancelPendingBackup();
+      const closing = instance;
+      instance = null;
+      // Defer so child live queries unsubscribe before the DB closes.
+      setTimeout(() => {
+        closing?.close().catch(() => {});
+      }, 0);
     };
   }, [attempt]);
 

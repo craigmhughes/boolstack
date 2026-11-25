@@ -36,13 +36,7 @@ async function requestPersistentStorage(
     return;
   }
 
-  const alreadyPersisted = await navigator.storage.persisted();
   const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
-
-  if (alreadyPersisted && backupSource) {
-    setStoragePersisted(true);
-    return;
-  }
 
   const granted = await navigator.storage.persist();
   if (backupSource) setStoragePersisted(granted);
@@ -277,10 +271,11 @@ export function StoragePersistence({
           return;
         }
 
-        const alreadyPersisted = await navigator.storage.persisted();
         const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
 
-        if (alreadyPersisted && backupSource) {
+        // A stored backup folder is what matters; persist() is often denied (e.g. not installed).
+        if (backupSource) {
+          void navigator.storage.persist().catch(() => {});
           if (mounted) {
             setDone(true);
             setMinimizedRef.current(true);

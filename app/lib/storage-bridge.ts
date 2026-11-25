@@ -197,7 +197,7 @@ export function createStorageSync(
   let chain: Promise<void> = Promise.resolve();
 
   const run = async () => {
-    if (!clearAll && pending.size === 0) return;
+    if (db.closed || (!clearAll && pending.size === 0)) return;
     const ops = pending;
     const wipe = clearAll;
     pending = new Map();
