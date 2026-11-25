@@ -1,0 +1,1 @@
+Boolstack - local-first admin panel for your personal HTML apps
