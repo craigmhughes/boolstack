@@ -1,4 +1,4 @@
-![Boolstack Logo](app\boolstack-logo-plate.svg "Boolstack")
+![Boolstack Logo](app/boolstack-logo-plate.svg "Boolstack")
 
 A local-first launcher for your personal single-file HTML apps. Keep the little apps your AI assistant builds for you (a habit tracker, a budget calculator, a flashcard deck) in one dashboard. Your apps and their data live in your browser and are backed up to a folder you choose. No account, no server-side storage.
 
