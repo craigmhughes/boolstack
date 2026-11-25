@@ -4,7 +4,7 @@ import { ArtifactList } from "./components/ArtifactList";
 import { ArtifactEdit } from "./components/ArtifactEdit";
 import { ArtifactView } from "./components/ArtifactView";
 import { StoragePersistence } from "./components/StoragePersistence";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { restoreBackupFile } from "./lib/db";
 import { getSectionTitle } from "./lib/section-title";
 import type { Artifact } from "./lib/types";
@@ -28,6 +28,8 @@ import { BrandLogo } from "./components/brand/BrandLogo";
 import { BrandLogoMotion } from "./components/brand/BrandLogoMotion";
 import { RegistryBrowser } from "./components/RegistryBrowser";
 import { IconPackageImport, IconPlus } from "@tabler/icons-react";
+import { LiveStatus } from "./components/LiveStatus";
+import { useReducedMotion } from "./lib/use-reduced-motion";
 
 const APP_REVEAL_DELAY = 1000;
 
@@ -46,6 +48,15 @@ export default function Home() {
     (a: Artifact | null) => setViewerTitle(a?.namespace ?? null),
     [],
   );
+  const fabRef = useRef<HTMLButtonElement>(null);
+  // Set when a menu item opens a dialog/overlay, so Radix doesn't return focus to the FAB and steal it.
+  const menuOpenedOverlayRef = useRef(false);
+  const reducedMotion = useReducedMotion();
+  const handleRegistryOpenChange = useCallback((open: boolean) => {
+    setRegistryOpen(open);
+    // Return focus to the FAB once the inert wrapper has lifted.
+    if (!open) requestAnimationFrame(() => fabRef.current?.focus());
+  }, []);
   const gridVisible = showGrid || introMinimized;
   const overlayOpen = registryOpen || viewerOpen;
 
@@ -90,9 +101,18 @@ export default function Home() {
         grainOpacity={0.15}
         className="!fixed inset-0 -z-10 bg-black min-h-0 h-full w-full"
       />
+      <div inert={!showApp || overlayOpen} className="contents">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-slate-900 focus:shadow-lg"
+        >
+          Skip to apps
+        </a>
+      </div>
       <div inert={registryOpen || viewerOpen} className="contents">
         <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
       </div>
+      <LiveStatus message={introMinimized && !showApp ? "Loading Boolstack" : ""} />
       <AnimatePresence>
         {!showApp && (
           <motion.div
@@ -112,22 +132,24 @@ export default function Home() {
               transition={{ duration: 1 }}
               className="relative flex gap-8 flex-col"
             >
-              <Grid
-                size="60"
-                speed="1.5"
-                color="#FFF"
-              />
-              <p className="text-[11px] tracking-wider text-slate-400">Loading...</p>
+              <span aria-hidden="true" className="contents">
+                <Grid
+                  size="60"
+                  speed={reducedMotion ? "0" : "1.5"}
+                  color="#FFF"
+                />
+              </span>
+              <p aria-hidden="true" className="text-xs tracking-wider text-slate-400">Loading...</p>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-      <main className="flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 py-6 sm:py-10">
+      <div inert={!showApp} className="contents">
         <motion.header
           variants={headerVariants}
           initial="hidden"
           animate={showApp ? "shown" : "hidden"}
-          className="flex items-center justify-between mb-10"
+          className="mx-auto mb-10 flex w-full max-w-screen-2xl items-center justify-between px-4 pt-6 sm:px-6 sm:pt-10 lg:px-10"
         >
           {overlayOpen ? (
             <span aria-hidden className="opacity-0">
@@ -137,6 +159,7 @@ export default function Home() {
             <BrandLogoMotion />
           )}
         </motion.header>
+        <main id="main" tabIndex={-1} className="outline-none flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 pb-28">
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
             <div inert={registryOpen} className="contents">
@@ -144,46 +167,66 @@ export default function Home() {
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button
+                      ref={fabRef}
                       aria-label="Add app"
-                      className="group size-14 cursor-pointer rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-[0_0_40px_rgba(37,99,235,.45)] fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
+                      className="group size-14 cursor-pointer rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-[0_0_40px_rgba(37,99,235,.45)] fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40"
                     >
-                      <IconPlus className="size-6 stroke-2 transition-transform group-data-[state=open]:rotate-45" />
+                      <IconPlus aria-hidden="true" className="size-6 stroke-2 motion-safe:transition-transform group-data-[state=open]:rotate-45" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     side="top"
                     align="end"
                     sideOffset={12}
-                    className="min-w-[220px] rounded-xl border border-slate-800 bg-slate-950 p-1 text-slate-100 shadow-[0_0_40px_rgba(37,99,235,.25)]"
+                    onCloseAutoFocus={(e) => {
+                      if (menuOpenedOverlayRef.current) {
+                        menuOpenedOverlayRef.current = false;
+                        e.preventDefault();
+                      }
+                    }}
+                    className="min-w-[220px] data-[state=closed]:pointer-events-none rounded-xl border border-slate-800 bg-slate-950 p-1 text-slate-100 shadow-[0_0_40px_rgba(37,99,235,.25)]"
                   >
                     <DropdownMenuItem
-                      onSelect={() => setCreateOpen(true)}
+                      onSelect={() => {
+                        menuOpenedOverlayRef.current = true;
+                        setCreateOpen(true);
+                      }}
                       className="gap-3 px-3 py-2.5 rounded-md text-sm cursor-pointer focus:bg-slate-800 focus:text-slate-100 [&_svg]:size-4 [&_svg]:text-slate-400"
                     >
-                      <IconPlus />
+                      <IconPlus aria-hidden="true" />
                       New app
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onSelect={() => setRegistryOpen(true)}
+                      onSelect={() => {
+                        menuOpenedOverlayRef.current = true;
+                        setRegistryOpen(true);
+                      }}
                       className="gap-3 px-3 py-2.5 rounded-md text-sm cursor-pointer focus:bg-slate-800 focus:text-slate-100 [&_svg]:size-4 [&_svg]:text-slate-400"
                     >
-                      <IconPackageImport />
+                      <IconPackageImport aria-hidden="true" />
                       Import from registry
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-                  <DialogContent className="md:max-w-[min(56rem,calc(100%-2rem))]">
+                  <DialogContent
+                    className="md:max-w-[min(56rem,calc(100%-2rem))]"
+                    onCloseAutoFocus={(e) => {
+                      e.preventDefault();
+                      fabRef.current?.focus();
+                    }}
+                  >
                     <ArtifactEdit key="new" onSaved={() => setCreateOpen(false)} />
                   </DialogContent>
                 </Dialog>
                 <ArtifactList onCreate={() => setCreateOpen(true)} />
               </ArtifactView>
             </div>
-            <RegistryBrowser open={registryOpen} onOpenChange={setRegistryOpen} />
+            <RegistryBrowser open={registryOpen} onOpenChange={handleRegistryOpenChange} />
           </ClientDatabaseGateway>
         )}
-      </main>
+        </main>
+      </div>
     </div>
     </LayoutGroup>
     </MotionConfig>
