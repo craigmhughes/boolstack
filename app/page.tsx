@@ -4,8 +4,10 @@ import { ArtifactList } from "./components/ArtifactList";
 import { ArtifactEdit } from "./components/ArtifactEdit";
 import { ArtifactView } from "./components/ArtifactView";
 import { StoragePersistence } from "./components/StoragePersistence";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { restoreBackupFile } from "./lib/db";
+import { getSectionTitle } from "./lib/section-title";
+import type { Artifact } from "./lib/types";
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
 import { headerVariants, screenSpring } from "./lib/motion";
 import { Grid } from 'ldrs/react'
@@ -39,8 +41,17 @@ export default function Home() {
   const [createOpen, setCreateOpen] = useState(false);
   const [registryOpen, setRegistryOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerTitle, setViewerTitle] = useState<string | null>(null);
+  const handleActiveArtifactChange = useCallback(
+    (a: Artifact | null) => setViewerTitle(a?.namespace ?? null),
+    [],
+  );
   const gridVisible = showGrid || introMinimized;
   const overlayOpen = registryOpen || viewerOpen;
+
+  useEffect(() => {
+    document.title = getSectionTitle({ registryOpen, viewerTitle, introMinimized });
+  }, [registryOpen, viewerTitle, introMinimized]);
 
   const handleInitialize = async () => {
     const restoredFile = await restoreBackupFile();
@@ -104,7 +115,7 @@ export default function Home() {
               <Grid
                 size="60"
                 speed="1.5"
-                color="white"
+                color="#FFF"
               />
               <p className="text-[11px] tracking-wider text-slate-400">Loading...</p>
             </motion.div>
@@ -129,7 +140,7 @@ export default function Home() {
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
             <div inert={registryOpen} className="contents">
-              <ArtifactView onViewerOpenChange={setViewerOpen} recede={registryOpen}>
+              <ArtifactView onViewerOpenChange={setViewerOpen} onActiveArtifactChange={handleActiveArtifactChange} recede={registryOpen}>
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button

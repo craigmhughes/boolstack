@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -7,9 +7,20 @@ import { ThemeProvider } from "./components/ThemeProvider";
 const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
-  title: "boolstack",
+  title: "Boolstack | Apps",
   description: "Local-first admin panel for your personal HTML apps.",
+  openGraph: {
+    title: "Boolstack",
+    description: "Local-first admin panel for your personal HTML apps.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Boolstack",
+    description: "Local-first admin panel for your personal HTML apps.",
+  },
 };
+
+export const viewport: Viewport = { themeColor: "#0F0F0D" };
 
 export default function RootLayout({
   children,

@@ -46,10 +46,12 @@ function restoreActiveArtifact(): Artifact | null {
 export function ArtifactView({
   children,
   onViewerOpenChange,
+  onActiveArtifactChange,
   recede,
 }: {
   children: React.ReactNode;
   onViewerOpenChange?: (open: boolean) => void;
+  onActiveArtifactChange?: (artifact: Artifact | null) => void;
   recede?: boolean;
 }) {
   const { db } = useGateway();
@@ -63,6 +65,10 @@ export function ArtifactView({
   useEffect(() => {
     onViewerOpenChange?.(viewerOpen);
   }, [viewerOpen, onViewerOpenChange]);
+
+  useEffect(() => {
+    onActiveArtifactChange?.(activeArtifact);
+  }, [activeArtifact, onActiveArtifactChange]);
 
   const namespace = activeArtifact?.namespace ?? null;
   const activeURL = loaded && loaded.namespace === namespace ? loaded.url : null;
