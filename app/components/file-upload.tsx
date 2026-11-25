@@ -13,9 +13,20 @@ type FileUploadProps = {
   onFileChange?: (file: File | null) => void
   name?: string
   required?: boolean
+  /** Input id (so a parent can focus it). Defaults to a generated id. */
+  id?: string
+  /** Marks the input aria-invalid for a parent-owned error. */
+  invalid?: boolean
+  /** Extra ids (space separated) appended to aria-describedby. */
+  describedBy?: string
 }
 
 const BYTES_PER_MB = 1024 * 1024
+export const DEFAULT_MAX_SIZE_MB = 500
+
+export function isFileOversized(file: File | null, maxSizeMB = DEFAULT_MAX_SIZE_MB) {
+  return file ? file.size > maxSizeMB * BYTES_PER_MB : false
+}
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} B`
@@ -31,19 +42,24 @@ function getExtension(file: File) {
 export function FileUpload({
   label = 'Attachment',
   accept = ['.pdf', '.png', '.jpg', '.docx'],
-  maxSizeMB = 500,
+  maxSizeMB = DEFAULT_MAX_SIZE_MB,
   onFileChange,
   name,
   required,
+  id,
+  invalid,
+  describedBy,
 }: FileUploadProps) {
-  const inputId = useId()
+  const generatedId = useId()
+  const inputId = id ?? generatedId
   const descriptionId = useId()
+  const errorId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
 
   const typeList = accept.map((type) => type.replace('.', '').toUpperCase()).join(', ')
-  const isOversized = file ? file.size > maxSizeMB * BYTES_PER_MB : false
+  const isOversized = isFileOversized(file, maxSizeMB)
 
   function selectFile(next: File | null) {
     setFile(next)
@@ -52,13 +68,20 @@ export function FileUpload({
 
   function clearFile() {
     selectFile(null)
-    if (inputRef.current) inputRef.current.value = ''
+    if (inputRef.current) {
+      inputRef.current.value = ''
+      // The clear button unmounts, so hand focus back to the input.
+      inputRef.current.focus()
+    }
   }
 
   return (
     <div className="flex w-full flex-col gap-2">
       <label htmlFor={inputId} className="text-sm font-medium text-foreground">
         {label}
+        {required && (
+          <span className="ml-1 text-xs font-normal text-muted-foreground">(required)</span>
+        )}
       </label>
 
       <input
@@ -67,8 +90,12 @@ export function FileUpload({
         type="file"
         name={name}
         required={required}
+        aria-required={required || undefined}
+        aria-invalid={isOversized || invalid || undefined}
         accept={accept.join(',')}
-        aria-describedby={descriptionId}
+        aria-describedby={
+          [descriptionId, isOversized ? errorId : null, describedBy].filter(Boolean).join(' ')
+        }
         className="peer sr-only"
         onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
       />
@@ -76,8 +103,8 @@ export function FileUpload({
       {file ? (
         <div
           className={cn(
-            'flex items-center gap-3 rounded-lg border bg-card p-3',
-            isOversized ? 'border-destructive/50' : 'border-border',
+            'flex items-center gap-3 rounded-lg border bg-card p-3 peer-focus-visible:ring-3 peer-focus-visible:ring-ring',
+            isOversized ? 'border-red-400' : 'border-border',
           )}
         >
           <div className="relative flex size-11 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
@@ -98,7 +125,7 @@ export function FileUpload({
                 className={cn(
                   'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-medium tabular-nums',
                   isOversized
-                    ? 'bg-destructive/10 text-destructive'
+                    ? 'bg-red-400/10 text-red-400'
                     : 'bg-muted text-muted-foreground',
                 )}
               >
@@ -110,7 +137,7 @@ export function FileUpload({
               </span>
             </div>
             {isOversized && (
-              <p className="text-xs text-destructive" role="alert">
+              <p id={errorId} className="text-xs text-red-400" role="alert">
                 {`File exceeds the ${maxSizeMB} MB limit.`}
               </p>
             )}
@@ -123,7 +150,7 @@ export function FileUpload({
             onClick={clearFile}
             aria-label={`Remove ${file.name}`}
           >
-            <X />
+            <X aria-hidden="true" />
           </Button>
         </div>
       ) : (
@@ -142,7 +169,7 @@ export function FileUpload({
           className={cn(
             'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 text-center transition-colors',
             'hover:border-ring hover:bg-muted/50',
-            'peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring/50',
+            'peer-focus-visible:border-ring peer-focus-visible:ring-3 peer-focus-visible:ring-ring',
             isDragging ? 'border-ring bg-muted/50' : 'border-border',
           )}
         >
