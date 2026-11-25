@@ -80,11 +80,15 @@ function focusIfLost(el: HTMLElement | null) {
 interface StoragePersistenceProps {
   minimized: boolean;
   setMinimized: Dispatch<SetStateAction<boolean>>;
+  onChecked?: () => void;
+  skipEntrance?: boolean;
 }
 
 export function StoragePersistence({
   minimized = false,
   setMinimized = () => {},
+  onChecked,
+  skipEntrance = false,
 }: StoragePersistenceProps) {
   const [done, setDone] = useState(false);
   const [, setStoragePersisted] = useState<boolean | null>(null);
@@ -104,6 +108,11 @@ export function StoragePersistence({
   useEffect(() => {
     setMinimizedRef.current = setMinimized;
   }, [setMinimized]);
+  // Latest onChecked in a ref so the mount-only init effect never needs to re-run.
+  const onCheckedRef = useRef(onChecked);
+  useEffect(() => {
+    onCheckedRef.current = onChecked;
+  }, [onChecked]);
 
   // Focus the dialog heading whenever the overlay (re)appears.
   const focusHeading = useCallback((el: HTMLElement | null) => {
@@ -262,24 +271,29 @@ export function StoragePersistence({
     }
 
     (async () => {
-      if (!navigator.storage) {
-        safeSetStoragePersisted(false);
-        return;
-      }
-
-      const alreadyPersisted = await navigator.storage.persisted();
-      const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
-
-      if (alreadyPersisted && backupSource) {
-        if (mounted) {
-          setDone(true);
-          setMinimizedRef.current(true);
+      try {
+        if (!navigator.storage) {
+          safeSetStoragePersisted(false);
+          return;
         }
-        return;
-      }
 
-      const granted = await navigator.storage.persist();
-      safeSetStoragePersisted(granted);
+        const alreadyPersisted = await navigator.storage.persisted();
+        const backupSource = await get('backupSource') as FileSystemDirectoryHandle | null;
+
+        if (alreadyPersisted && backupSource) {
+          if (mounted) {
+            setDone(true);
+            setMinimizedRef.current(true);
+          }
+          return;
+        }
+
+        const granted = await navigator.storage.persist();
+        safeSetStoragePersisted(granted);
+      } finally {
+        // Storage check has resolved (or failed); notify exactly once, only while mounted.
+        if (mounted) onCheckedRef.current?.();
+      }
     })();
 
     return () => {
@@ -322,7 +336,7 @@ export function StoragePersistence({
         {!done && !minimized && (
           <motion.div
             key="overlay"
-            initial={{ opacity: 0, y: 40 }}
+            initial={skipEntrance ? false : { opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: "-30%" }}
             transition={screenSpring}
@@ -344,7 +358,9 @@ export function StoragePersistence({
               <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full h-full max-w-screen-sm max-md:max-w-[340px] mx-auto">
                 <div className="flex flex-1 flex-col items-start justify-end gap-4 w-full xl:justify-center">
                   <div className="flex-1 max-h-[180px] flex items-end justify-end">
-                    <BrandLogo className="[@media(max-height:768px)]:mb-6" />
+                    <div data-logo-target="setup">
+                      <BrandLogo className="[@media(max-height:768px)]:mb-6" />
+                    </div>
                   </div>
                   <div className="flex flex-col items-start justify-center gap-8 w-full mb-10">
                     <h1 id={headingId} ref={focusHeading} tabIndex={-1} className="font-medium text-4xl tracking-tight outline-none [@media(max-height:768px)]:sr-only">Your apps, your way. Start building today.</h1>

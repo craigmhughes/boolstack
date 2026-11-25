@@ -10,9 +10,10 @@ export type BrandLogoProps = {
   size?: 'sm' | 'md';
   showWordmark?: boolean;
   className?: string;
+  color?: string;
 };
 
-export function BrandLogo({ size = 'md', showWordmark = true, className }: BrandLogoProps) {
+export function BrandLogo({ size = 'md', showWordmark = true, className, color = "#FFF" }: BrandLogoProps) {
   const reduceMotion = useReducedMotion();
   const isSmall = size === 'sm';
   // Plate proportions: Grid size ~2.6x wordmark height, gap ~0.469x height, minus the Grid host padding (~0.2px at md).
@@ -21,13 +22,13 @@ export function BrandLogo({ size = 'md', showWordmark = true, className }: Brand
 
   return (
     <div
-      className={cn("text-white flex items-center", className)}
-      style={{ gap: wordmarkHeight * 0.453 }}
+      className={cn("flex items-center", className)}
+      style={{ color, gap: wordmarkHeight * 0.453 }}
       role={showWordmark ? undefined : "img"}
       aria-label={showWordmark ? undefined : "Boolstack"}
     >
       <span aria-hidden="true" className="flex items-center justify-center">
-        <Grid size={String(gridSize)} speed={reduceMotion ? "0" : "4"} color="#FFF" />
+        <Grid size={String(gridSize)} speed={reduceMotion ? "0" : "4"} color={color} />
       </span>
       {showWordmark && (
         <BrandWordmark style={{ height: wordmarkHeight }} />

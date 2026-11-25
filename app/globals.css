@@ -187,3 +187,8 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Intro screen */
+#intro-cover { display: none; position: fixed; inset: 0; z-index: 9998; background: var(--color-brand-black); }
+html[data-intro] #intro-cover { display: block; }
+html[data-intro] [data-logo-target] { opacity: 0 !important; }

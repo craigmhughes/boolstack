@@ -30,6 +30,7 @@ import { RegistryBrowser } from "./components/RegistryBrowser";
 import { IconPackageImport, IconPlus } from "@tabler/icons-react";
 import { LiveStatus } from "./components/LiveStatus";
 import { useReducedMotion } from "./lib/use-reduced-motion";
+import { IntroScreen } from "./components/IntroScreen";
 
 const APP_REVEAL_DELAY = 1000;
 
@@ -38,6 +39,8 @@ export default function Home() {
   const [backupFile, setBackupFile] = useState<File | undefined>();
   const [showApp, setShowApp] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
+  const [introActive, setIntroActive] = useState(false);
+  const [storageChecked, setStorageChecked] = useState(false);
 
   const [introMinimized, setIntroMinimized] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -59,6 +62,30 @@ export default function Home() {
   }, []);
   const gridVisible = showGrid || introMinimized;
   const overlayOpen = registryOpen || viewerOpen;
+  const introTarget = introActive && storageChecked ? (introMinimized ? "dashboard" : "setup") : null;
+
+  useEffect(() => {
+    // Gate script sets this before paint; read it once after mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (document.documentElement.dataset.intro === "play") setIntroActive(true);
+  }, []);
+
+  const handleIntroDone = useCallback(() => {
+    setIntroActive(false);
+    // Wait for the inert wrappers to lift before moving focus.
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const h1 = document.querySelector<HTMLElement>("[role=dialog] h1");
+        if (h1) {
+          h1.tabIndex = -1;
+          h1.focus({ preventScroll: true });
+        } else {
+          document.getElementById("main")?.focus({ preventScroll: true });
+        }
+      }),
+    );
+  }, []);
+  const handleChecked = useCallback(() => setStorageChecked(true), []);
 
   useEffect(() => {
     document.title = getSectionTitle({ registryOpen, viewerTitle, introMinimized });
@@ -73,10 +100,10 @@ export default function Home() {
   useEffect(() => {
     const timer = setTimeout(
       () => setShowApp(introMinimized),
-      introMinimized ? APP_REVEAL_DELAY : 0,
+      introMinimized && !introActive ? APP_REVEAL_DELAY : 0,
     );
     return () => clearTimeout(timer);
-  }, [introMinimized]);
+  }, [introMinimized, introActive]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -101,7 +128,7 @@ export default function Home() {
         grainOpacity={0.15}
         className="!fixed inset-0 -z-10 bg-black min-h-0 h-full w-full"
       />
-      <div inert={!showApp || overlayOpen} className="contents">
+      <div inert={!showApp || overlayOpen || introActive} className="contents">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-slate-900 focus:shadow-lg"
@@ -109,12 +136,18 @@ export default function Home() {
           Skip to apps
         </a>
       </div>
-      <div inert={registryOpen || viewerOpen} className="contents">
-        <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
+      <div inert={registryOpen || viewerOpen || introActive} className="contents">
+        <StoragePersistence
+          minimized={introMinimized}
+          setMinimized={setIntroMinimized}
+          skipEntrance={introActive}
+          onChecked={handleChecked}
+        />
       </div>
+      {introActive && <IntroScreen target={introTarget} onDone={handleIntroDone} />}
       <LiveStatus message={introMinimized && !showApp ? "Loading Boolstack" : ""} />
       <AnimatePresence>
-        {!showApp && (
+        {!showApp && !introActive && (
           <motion.div
             key="cover"
             exit={{ opacity: 0, pointerEvents: "none" }}
@@ -144,11 +177,12 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
-      <div inert={!showApp} className="contents">
+      <div inert={!showApp || introActive} className="contents">
         <motion.header
           variants={headerVariants}
           initial="hidden"
-          animate={showApp ? "shown" : "hidden"}
+          animate={showApp || introActive ? "shown" : "hidden"}
+          transition={introActive ? { duration: 0 } : undefined}
           className="mx-auto mb-10 flex w-full max-w-screen-2xl items-center justify-between px-4 pt-6 sm:px-6 sm:pt-10 lg:px-10"
         >
           {overlayOpen ? (
@@ -156,7 +190,9 @@ export default function Home() {
               <BrandLogo />
             </span>
           ) : (
-            <BrandLogoMotion />
+            <div data-logo-target="dashboard">
+              <BrandLogoMotion />
+            </div>
           )}
         </motion.header>
         <main id="main" tabIndex={-1} className="outline-none flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 pb-28">
