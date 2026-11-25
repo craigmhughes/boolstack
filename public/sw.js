@@ -1,5 +1,5 @@
 // App-shell service worker. Registered by app/components/StoragePersistence.tsx.
-const CACHE = 'boolstack-shell-v2';
+const CACHE = 'boolstack-shell-v3';
 const PRECACHE = ['/', '/manifest.json'];
 
 // Precache the shell. Each URL is added on its own so one failure doesn't drop the rest.
@@ -32,7 +32,7 @@ self.addEventListener('fetch', (event) => {
   if (url.protocol === 'blob:' || url.protocol === 'chrome-extension:') return;
   if (url.pathname === '/_next/webpack-hmr' || url.href.includes('__nextjs')) return;
 
-  // Page navigations: network first, keep a fresh copy, fall back to cached shell offline.
+  // Page navigations: network first, keep a fresh copy, offline fall back to that route's cached copy, then the shell.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -43,7 +43,7 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match('/'))
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
     );
     return;
   }

@@ -199,15 +199,25 @@ export function StoragePersistence({
     };
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(function (registration) {
-        if (mounted) {
-          console.log('Service Worker registered with scope:', registration.scope);
+      // Dev chunk URLs aren't content-hashed, so a cache-first SW serves stale JS and breaks hydration.
+      if (process.env.NODE_ENV === 'production') {
+        navigator.serviceWorker.register('/sw.js').then(function (registration) {
+          if (mounted) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          }
+        }).catch(function (error) {
+          if (mounted) {
+            console.log('Service Worker registration failed:', error);
+          }
+        });
+      } else {
+        navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+        if ('caches' in window) {
+          caches.keys().then((keys) => {
+            keys.filter((key) => key.startsWith('boolstack-')).forEach((key) => caches.delete(key));
+          });
         }
-      }).catch(function (error) {
-        if (mounted) {
-          console.log('Service Worker registration failed:', error);
-        }
-      });
+      }
     }
 
     (async () => {
