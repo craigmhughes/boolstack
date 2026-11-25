@@ -3,6 +3,7 @@
 import { Grid } from "ldrs/react";
 import 'ldrs/react/Grid.css';
 import { cn } from "@/lib/utils";
+import { BrandWordmark } from "./BrandWordmark";
 
 export type BrandLogoProps = {
   size?: 'sm' | 'md';
@@ -12,24 +13,22 @@ export type BrandLogoProps = {
 
 export function BrandLogo({ size = 'md', showWordmark = true, className }: BrandLogoProps) {
   const isSmall = size === 'sm';
+  // Plate proportions: Grid size ~2.6x wordmark height, gap ~0.469x height, minus the Grid host padding (~0.2px at md).
+  const gridSize = isSmall ? 24 : 32;
+  const wordmarkHeight = gridSize / 2.6;
 
   return (
     <div
-      className={cn(
-        "font-medium tracking-tighter flex items-end gap-2",
-        isSmall && "text-sm",
-        className
-      )}
-      aria-label={showWordmark ? undefined : "Boolstack.dev"}
+      className={cn("text-white flex items-center", className)}
+      style={{ gap: wordmarkHeight * 0.453 }}
+      aria-label={showWordmark ? undefined : "Boolstack"}
     >
-      <span className="flex items-center justify-center relative -top-0.5">
-        <Grid
-          size={isSmall ? "14" : "20"}
-          speed="4"
-          color="white"
-        />
+      <span className="flex items-center justify-center">
+        <Grid size={String(gridSize)} speed="4" color="#FFF" />
       </span>
-      {showWordmark && "Boolstack.dev"}
+      {showWordmark && (
+        <BrandWordmark style={{ height: wordmarkHeight }} />
+      )}
     </div>
   );
 }
