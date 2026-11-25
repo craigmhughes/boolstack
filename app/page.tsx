@@ -6,7 +6,8 @@ import { ArtifactView } from "./components/ArtifactView";
 import { StoragePersistence } from "./components/StoragePersistence";
 import { useEffect, useState } from "react";
 import { restoreBackupFile } from "./lib/db";
-import { cx } from "class-variance-authority";
+import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
+import { headerVariants, screenSpring } from "./lib/motion";
 import { Grid } from 'ldrs/react'
 import 'ldrs/react/Grid.css'
 import {
@@ -22,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { GradientBackground } from "./components/GradientBackground";
 import { BrandLogo } from "./components/brand/BrandLogo";
+import { BrandLogoMotion } from "./components/brand/BrandLogoMotion";
 import { RegistryBrowser } from "./components/RegistryBrowser";
 import { IconPackageImport, IconPlus } from "@tabler/icons-react";
 
@@ -38,6 +40,7 @@ export default function Home() {
   const [registryOpen, setRegistryOpen] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const gridVisible = showGrid || introMinimized;
+  const overlayOpen = registryOpen || viewerOpen;
 
   const handleInitialize = async () => {
     const restoredFile = await restoreBackupFile();
@@ -68,6 +71,8 @@ export default function Home() {
   }, []); 
 
   return (
+    <MotionConfig reducedMotion="user" transition={screenSpring}>
+    <LayoutGroup>
     <div className="flex flex-col flex-1 items-center justify-center font-sans text-slate-100">
       <GradientBackground
         showGrain
@@ -77,39 +82,54 @@ export default function Home() {
       <div inert={registryOpen || viewerOpen} className="contents">
         <StoragePersistence minimized={introMinimized} setMinimized={setIntroMinimized} />
       </div>
-      <div className={
-        cx(
-          "fixed h-full w-full flex justify-center items-center",
-          !showApp && "opacity-100",
-          showApp && "opacity-0 transition-opacity duration-500 pointer-events-none"
-        )
-      } >
-        <GradientBackground
-          showGrain
-          grainOpacity={0.15}
-          className="!absolute inset-0 bg-black min-h-0 h-full w-full"
-        />
-        <div className={cx(
-          "relative transition-all duration-1000 flex gap-8 flex-col",
-          !gridVisible && "scale-0 opacity-0",
-          gridVisible && "scale-100 opacity-100"
-        )}>
-          <Grid
-            size="60"
-            speed="1.5"
-            color="white"
-          />
-          <p className="text-[11px] tracking-wider text-slate-400">Loading...</p>
-        </div>
-      </div>
+      <AnimatePresence>
+        {!showApp && (
+          <motion.div
+            key="cover"
+            exit={{ opacity: 0, pointerEvents: "none" }}
+            transition={{ duration: 0.5 }}
+            className="fixed h-full w-full flex justify-center items-center"
+          >
+            <GradientBackground
+              showGrain
+              grainOpacity={0.15}
+              className="!absolute inset-0 bg-black min-h-0 h-full w-full"
+            />
+            <motion.div
+              initial={false}
+              animate={gridVisible ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+              transition={{ duration: 1 }}
+              className="relative flex gap-8 flex-col"
+            >
+              <Grid
+                size="60"
+                speed="1.5"
+                color="white"
+              />
+              <p className="text-[11px] tracking-wider text-slate-400">Loading...</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <main className="flex flex-1 w-full max-w-screen-2xl mx-auto flex-col px-4 sm:px-6 lg:px-10 py-6 sm:py-10">
-        <header className="flex items-center justify-between mb-10">
-          <BrandLogo />
-        </header>
+        <motion.header
+          variants={headerVariants}
+          initial="hidden"
+          animate={showApp ? "shown" : "hidden"}
+          className="flex items-center justify-between mb-10"
+        >
+          {overlayOpen ? (
+            <span aria-hidden className="opacity-0">
+              <BrandLogo />
+            </span>
+          ) : (
+            <BrandLogoMotion />
+          )}
+        </motion.header>
         {shouldInitDb && (
           <ClientDatabaseGateway backupFile={backupFile}>
             <div inert={registryOpen} className="contents">
-              <ArtifactView onViewerOpenChange={setViewerOpen}>
+              <ArtifactView onViewerOpenChange={setViewerOpen} recede={registryOpen}>
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -154,5 +174,7 @@ export default function Home() {
         )}
       </main>
     </div>
+    </LayoutGroup>
+    </MotionConfig>
   );
 }
