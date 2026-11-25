@@ -1,6 +1,6 @@
 'use client';
 
-import { useContext, useMemo, useState, useSyncExternalStore } from "react";
+import { useContext, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { useGateway } from "./ClientDatabaseGateway";
 import { useLiveQuery } from "@electric-sql/pglite-react";
 import { Artifact } from "../lib/types";
@@ -18,7 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { BrandDivider, BrandHeading, BrandTag } from "./brand";
+import { BrandDivider, BrandTag } from "./brand";
+import { LiveStatus } from "./LiveStatus";
 import { IconAlertHexagon, IconUpload } from "@tabler/icons-react";
 
 const COLUMN_QUERIES = [
@@ -92,6 +93,12 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
   const [editing, setEditing] = useState<Artifact | null>(null);
   const [deleting, setDeleting] = useState<Artifact | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const lastEditedNs = useRef<string | null>(null);
+  const deletedRef = useRef(false);
 
   const columnCount = useColumnCount();
   const isMobile = useIsMobile();
@@ -114,12 +121,37 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
     [result, columnCount],
   );
 
+  const count = result ? result.rows.length : null;
+
+  // Announce count changes after the first load (adjust state during render).
+  const [prevCount, setPrevCount] = useState<number | null>(null);
+  const [countMessage, setCountMessage] = useState("");
+  if (count !== prevCount) {
+    setPrevCount(count);
+    if (count !== null && prevCount !== null) {
+      setCountMessage(`${count} ${count === 1 ? "app" : "apps"}`);
+    }
+  }
+
+  const requestEdit = (artifact: Artifact) => {
+    lastEditedNs.current = artifact.namespace;
+    setEditing(artifact);
+  };
+
+  const requestDelete = (artifact: Artifact) => {
+    lastEditedNs.current = artifact.namespace;
+    deletedRef.current = false;
+    setDeleteError(null);
+    setDeleting(artifact);
+  };
+
   const confirmDelete = async () => {
     if (!db || !deleting) {
       return;
     }
     const ns = deleting.namespace;
     setDeleteBusy(true);
+    setDeleteError(null);
     try {
       await deleteArtifact(db, ns);
       try {
@@ -134,41 +166,55 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
         // localStorage unavailable; nothing to clean up
       }
       scheduleBackup(db);
+      deletedRef.current = true;
       setDeleting(null);
+    } catch (error) {
+      console.error("Failed to delete artifact:", error);
+      setDeleteError("Couldn't delete this app. Please try again.");
     } finally {
       setDeleteBusy(false);
     }
   };
 
+  const status = <LiveStatus message={result ? countMessage : "Loading apps"} />;
+
   if (!result && isMobile) {
     return (
-      <div className="grid grid-cols-4 max-[359px]:grid-cols-3 gap-x-2 gap-y-6 justify-items-center" aria-busy="true">
-        {Array.from({ length: 8 }, (_, i) => (
-          <div key={i} className="flex flex-col items-center gap-[6px]">
-            <div className="size-[60px] rounded-[28%] bg-slate-800/60 animate-pulse" />
-            <div className="h-2 w-10 rounded bg-slate-800/60 animate-pulse" />
-          </div>
-        ))}
+      <div>
+        {status}
+        <div aria-hidden="true" className="grid grid-cols-4 max-[359px]:grid-cols-3 gap-x-2 gap-y-6 justify-items-center">
+          {Array.from({ length: 8 }, (_, i) => (
+            <div key={i} className="flex flex-col items-center gap-[6px]">
+              <div className="size-[60px] rounded-[28%] bg-slate-800/60 motion-safe:animate-pulse" />
+              <div className="h-2 w-10 rounded bg-slate-800/60 motion-safe:animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
 
   if (!result) {
     return (
-      <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4" aria-busy="true">
-        {["h-56", "h-72", "h-44"].map((h, i) => (
-          <div key={i} className={`mb-4 break-inside-avoid ${h} w-full animate-pulse rounded-[24px] bg-slate-800/60`} />
-        ))}
+      <div>
+        {status}
+        <div aria-hidden="true" className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4">
+          {["h-56", "h-72", "h-44"].map((h, i) => (
+            <div key={i} className={`mb-4 break-inside-avoid ${h} w-full motion-safe:animate-pulse rounded-[24px] bg-slate-800/60`} />
+          ))}
+        </div>
       </div>
     );
   }
 
-  const count = result.rows.length;
-
   return (
-    <div>
+    <div ref={listRef}>
+      {status}
       {count === 0 ? (
         <div className="mx-auto flex w-full max-w-screen-sm flex-col gap-8">
+          <h1 ref={headingRef} tabIndex={-1} data-apps-heading className="sr-only">
+            Your apps
+          </h1>
           <Card className="relative w-full overflow-visible">
             <BrandTag className="absolute -top-3 left-0">Get started</BrandTag>
             <CardContent className="flex flex-col gap-4 p-4 pt-8">
@@ -176,10 +222,10 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
                 Add a self-contained HTML app. It&apos;s stored locally and backed up with your data.
               </p>
               <Button
-                className="w-full gap-3 rounded-md bg-blue-500 p-5 text-white hover:bg-blue-600"
+                className="w-full gap-3 rounded-md bg-blue-600 p-5 text-white hover:bg-blue-700"
                 onClick={() => onCreate?.()}
               >
-                <IconUpload size={16} />
+                <IconUpload size={16} aria-hidden="true" />
                 Add your first app
               </Button>
             </CardContent>
@@ -189,7 +235,14 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
       ) : (
         <>
           <div className="mb-6 flex items-center gap-4 sm:mb-8">
-            <BrandHeading as="h2" className="max-sm:text-3xl">Your apps</BrandHeading>
+            <h1
+              ref={headingRef}
+              tabIndex={-1}
+              data-apps-heading
+              className="font-medium text-4xl tracking-tight text-slate-100 outline-none max-md:text-3xl max-sm:text-3xl"
+            >
+              Your apps
+            </h1>
             <BrandTag>
               {count} {count === 1 ? "app" : "apps"}
             </BrandTag>
@@ -198,36 +251,52 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
             <LauncherGrid
               artifacts={result.rows}
               onOpen={setActiveArtifact}
-              onEdit={setEditing}
-              onDelete={setDeleting}
+              onEdit={requestEdit}
+              onDelete={requestDelete}
             />
           ) : (
-          <div className="flex gap-4 items-start">
-            {columns.map((col, ci) => (
-              <div key={ci} className="flex-1 min-w-0 flex flex-col gap-4">
-                {col.map((artifact) => (
-                  <FeatureCard
-                    key={artifact.namespace}
-                    className="w-full"
-                    title={artifact.namespace}
-                    description={artifact.description}
-                    icon={artifact.icon}
-                    variant={artifact.variant}
-                    color={artifact.color}
-                    onClick={() => setActiveArtifact(artifact)}
-                    onEdit={() => setEditing(artifact)}
-                    onDelete={() => setDeleting(artifact)}
-                  />
-                ))}
+          <div role="list" aria-label="Your apps" className="flex gap-4 items-start">
+            {columns.map((col, ci) =>
+              col.length === 0 ? (
+                <div key={ci} aria-hidden="true" className="flex-1 min-w-0" />
+              ) : (
+              <div key={ci} role="presentation" className="flex flex-1 min-w-0 flex-col gap-4">
+                  {col.map((artifact) => (
+                    <div role="listitem" key={artifact.namespace}>
+                      <FeatureCard
+                        className="w-full"
+                        headingLevel={3}
+                        title={artifact.namespace}
+                        description={artifact.description}
+                        icon={artifact.icon}
+                        variant={artifact.variant}
+                        color={artifact.color}
+                        onClick={() => setActiveArtifact(artifact)}
+                        onEdit={() => requestEdit(artifact)}
+                        onDelete={() => requestDelete(artifact)}
+                      />
+                    </div>
+                  ))}
               </div>
-            ))}
+              ),
+            )}
           </div>
           )}
         </>
       )}
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="md:max-w-[min(56rem,calc(100%-2rem))]">
+        <DialogContent
+          className="md:max-w-[min(56rem,calc(100%-2rem))]"
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            const ns = lastEditedNs.current;
+            const trigger = Array.from(
+              listRef.current?.querySelectorAll<HTMLElement>("[data-artifact-trigger]") ?? [],
+            ).find((el) => el.dataset.artifactTrigger === ns);
+            (trigger ?? headingRef.current)?.focus();
+          }}
+        >
           {editing && (
             <ArtifactEdit
               key={editing.namespace}
@@ -239,24 +308,45 @@ export function ArtifactList({ onCreate }: { onCreate?: () => void }) {
       </Dialog>
 
       <Dialog open={!!deleting} onOpenChange={(o) => !o && !deleteBusy && setDeleting(null)}>
-        <DialogContent>
+        <DialogContent
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            cancelRef.current?.focus();
+          }}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            const ns = lastEditedNs.current;
+            const trigger = deletedRef.current
+              ? null
+              : Array.from(
+                  listRef.current?.querySelectorAll<HTMLElement>("[data-artifact-trigger]") ?? [],
+                ).find((el) => el.dataset.artifactTrigger === ns);
+            (trigger ?? headingRef.current)?.focus();
+          }}
+        >
           <div className="relative w-full">
             <BrandTag tone="danger" className="absolute -top-3 left-0 z-10">Delete app</BrandTag>
             <div className="flex flex-col gap-4 p-4 pt-8">
               <DialogTitle className="text-xl">Delete {deleting?.namespace}?</DialogTitle>
               <DialogDescription asChild>
-                <div className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-[11px] text-red-400">
-                  <IconAlertHexagon size={16} className="shrink-0" />
+                <div className="flex items-center gap-2 rounded-md border border-red-900 bg-red-950 px-4 py-3 text-xs text-red-400">
+                  <IconAlertHexagon size={16} className="shrink-0" aria-hidden="true" />
                   <span>This erases the app file and all of its saved data. This can&apos;t be undone.</span>
                 </div>
               </DialogDescription>
+              {deleteError && (
+                <p role="alert" className="text-sm text-red-400">
+                  {deleteError}
+                </p>
+              )}
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <Button variant="ghost" onClick={() => setDeleting(null)} disabled={deleteBusy}>
+                <Button ref={cancelRef} variant="ghost" onClick={() => setDeleting(null)} disabled={deleteBusy}>
                   Cancel
                 </Button>
                 <Button
                   className="bg-red-600 text-white hover:bg-red-700"
                   onClick={confirmDelete}
+                  aria-busy={deleteBusy}
                   disabled={deleteBusy}
                 >
                   Delete
