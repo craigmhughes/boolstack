@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { ArrowUpRight, Sparkles } from 'lucide-react'
 import { IconPencil, IconTrash } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
@@ -18,6 +19,8 @@ export type FeatureCardProps = {
   onEdit?: () => void
   /** Static display (editor preview): no hover lift, no action buttons. */
   preview?: boolean
+  /** Heading level for the title (default 3). Ignored in preview. */
+  headingLevel?: 2 | 3 | 4
 }
 
 const base = {
@@ -25,12 +28,12 @@ const base = {
     relative flex min-h-[230px] min-[561px]:min-h-[260px] flex-col justify-between overflow-hidden
     rounded-[24px] border bg-(--card-accent) border-[#101010]/12 p-[22px] text-(--card-ink)
     shadow-[0_5px_0_rgba(16,16,16,.16)] transition-[transform,box-shadow] duration-250 ease-in-out
-    transition-all
+    transition-all motion-reduce:transition-none
   `,
   icon: 'grid size-[52px] place-items-center rounded-2xl bg-(--card-icon) text-(--card-accent) [&_svg]:size-[27px]',
   title: 'max-w-[230px] text-[length:clamp(1.45rem,2.2vw,2.2rem)] leading-[.95] font-medium tracking-[-.06em]',
-  description: 'mt-3 max-w-[235px] text-[13px] leading-[1.4] text-[color-mix(in_srgb,var(--card-ink)_68%,transparent)]',
-  actions: 'absolute top-5 right-5 z-20 flex gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100',
+  description: 'mt-3 max-w-[235px] text-[13px] leading-[1.4] text-[color-mix(in_srgb,var(--card-ink)_90%,transparent)]',
+  actions: 'absolute top-5 right-5 z-20 flex gap-1.5 opacity-0 [@media(hover:none)]:opacity-100 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100 focus-within:opacity-100',
 }
 
 // Per-variant overrides, merged over `base` by cn (tailwind-merge resolves conflicts)
@@ -62,29 +65,29 @@ const variants: Record<string, Partial<typeof base> & { arrow?: string }> = {
   outlined: {
     root: 'border-[#101010] bg-[#fffaf2] text-[#1c1c1c]',
     icon: 'border border-[#101010]/20 bg-(--card-accent) text-(--card-ink)',
-    description: 'text-[color-mix(in_srgb,#1c1c1c_68%,transparent)]',
+    description: 'text-[color-mix(in_srgb,#1c1c1c_90%,transparent)]',
     actions: '[&_button]:text-[#1c1c1c] [&_button]:hover:text-[#1c1c1c]',
   },
   dark: {
     root: 'border-[#272727] bg-[#171717] text-[#f8f3eb] shadow-none',
     icon: 'bg-(--card-accent) text-(--card-ink)',
-    description: 'text-[rgba(248,243,235,.68)]',
+    description: 'text-[rgba(248,243,235,.9)]',
     arrow: 'absolute top-5 right-5 w-[21px]',
     actions: 'top-4 right-[52px]',
   },
   minimal: {
     root: 'border-[#101010] bg-[#b8dfe0] text-[#1c1c1c]',
     icon: 'size-[54px] rounded-[10px] [&_svg]:size-8 bg-(--card-accent) text-(--card-ink)',
-    description: 'text-[color-mix(in_srgb,#1c1c1c_68%,transparent)]',
+    description: 'text-[color-mix(in_srgb,#1c1c1c_90%,transparent)]',
     actions: '[&_button]:text-[#1c1c1c] [&_button]:hover:text-[#1c1c1c]',
   },
 }
 
-const hoverLift = 'hover:-translate-y-1 hover:shadow-[0_9px_0_rgba(16,16,16,.14)]'
+const hoverLift = 'motion-safe:hover:-translate-y-1 hover:shadow-[0_9px_0_rgba(16,16,16,.14)]'
 
 // Edit/Delete buttons take the card's own ink and tint (currentColor), so they follow the theme.
 const actionButton =
-  'bg-[color-mix(in_srgb,currentColor_14%,transparent)] text-current hover:bg-[color-mix(in_srgb,currentColor_26%,transparent)] hover:text-current focus-visible:ring-current/40 [&_svg]:size-4'
+  'bg-[color-mix(in_srgb,currentColor_14%,transparent)] text-current hover:bg-[color-mix(in_srgb,currentColor_26%,transparent)] hover:text-current focus-visible:ring-2 focus-visible:ring-current [&_svg]:size-4'
 
 // WCAG relative luminance; supports #rgb and #rrggbb. Returns null if unparseable.
 function luminance(hex: string): number | null {
@@ -117,7 +120,9 @@ export function FeatureCard({
   onDelete,
   onEdit,
   preview = false,
+  headingLevel = 3,
 }: FeatureCardProps) {
+  const descId = useId()
   const index = Math.min(Math.max(Math.round(variant), 1), 8) - 1
   const variantName = variantNames[index]
   const v = variants[variantName]
@@ -125,11 +130,15 @@ export function FeatureCard({
 
   const interactive = !preview
   const clickable = interactive && !!onClick
+  const Root = preview ? 'div' : 'article'
+  const Heading = `h${headingLevel}` as 'h3'
   return (
-    <article
+    <Root
       className={cn(
         base.root,
         interactive && hoverLift,
+        // Two-tone focus: inner ink ring (stretched button) plus a white outer outline for contrast against the page.
+        interactive && 'has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-white',
         v.root,
         'group select-none',
         interactive && onClick && 'cursor-pointer',
@@ -141,21 +150,31 @@ export function FeatureCard({
         '--card-icon': 'color-mix(in srgb, var(--card-accent) 88%, #1c1c1c)',
       } as React.CSSProperties}
     >
-      {clickable && (
-        // Stretched link: covers the card and is the single click/keyboard target.
-        <button
-          type="button"
-          aria-label={title}
-          onClick={onClick}
-          className="absolute inset-0 z-[5] rounded-[inherit] cursor-pointer outline-none focus-visible:ring-3 focus-visible:ring-ring/60 focus-visible:ring-inset"
-        />
-      )}
       <div className={cn(base.icon, v.icon)} aria-hidden="true">
         {icon ? <ArtifactIcon icon={icon} /> : <Sparkles strokeWidth={1.7} />}
       </div>
-      <div className="pointer-events-none relative z-10">
-        <h2 className={cn(base.title, v.title)}>{title}</h2>
-        {description && <p className={cn(base.description, v.description)}>{description}</p>}
+      <div className="pointer-events-none z-10">
+        {preview ? (
+          <p className={cn(base.title, v.title)}>{title}</p>
+        ) : (
+          <Heading className={cn(base.title, v.title)}>
+            {clickable ? (
+              // Stretched link: the ::after covers the card so the title is the single click/keyboard target.
+              <button
+                type="button"
+                data-artifact-trigger={title}
+                aria-describedby={description ? descId : undefined}
+                onClick={onClick}
+                className="pointer-events-auto cursor-pointer rounded-sm text-left font-[inherit] tracking-[inherit] outline-none after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] focus-visible:after:ring-3 focus-visible:after:ring-(--card-ink) focus-visible:after:ring-inset"
+              >
+                {title}
+              </button>
+            ) : (
+              title
+            )}
+          </Heading>
+        )}
+        {description && <p id={descId} className={cn(base.description, v.description)}>{description}</p>}
       </div>
       {isDark && <ArrowUpRight className={v.arrow} aria-hidden="true" />}
       {interactive && (onEdit || onDelete) && (
@@ -171,9 +190,8 @@ export function FeatureCard({
                 event.stopPropagation()
                 onEdit()
               }}
-              onKeyDown={(event) => event.stopPropagation()}
             >
-              <IconPencil />
+              <IconPencil aria-hidden="true" />
             </Button>
           )}
           {onDelete && (
@@ -187,14 +205,13 @@ export function FeatureCard({
                 event.stopPropagation()
                 void onDelete()
               }}
-              onKeyDown={(event) => event.stopPropagation()}
             >
-              <IconTrash />
+              <IconTrash aria-hidden="true" />
             </Button>
           )}
         </div>
       )}
-    </article>
+    </Root>
   )
 }
 
