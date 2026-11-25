@@ -43,10 +43,6 @@ This project uses Next.js 16, which has breaking changes from earlier versions. 
 
 Data lives in the browser (IndexedDB database `artifact-hub-db`, plus `localStorage` keys starting with `__bs_`) and in your backup folder's `backup.tar.gz`. To start fresh, clear the site data for the dev origin in your browser and delete or move `backup.tar.gz`; otherwise it is restored on next start.
 
-## Brand assets
-
-`scripts/build-brand-assets.mjs` regenerates brand images (icons, Open Graph images, etc.) from `app/boolstack-logo-plate.svg`. It drives a real Chrome or Edge through Playwright, which is not a project dependency, so install it yourself first. Most contributors never need this.
-
 ## Guide screenshots
 
 The user guide (`content/user-guide.md`, rendered at `/guide`) uses images in `public/guide/*.webp`. If you change the UI they show, update them, and make sure screenshots contain no personal data.
