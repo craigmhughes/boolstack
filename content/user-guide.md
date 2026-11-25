@@ -1,14 +1,14 @@
 # Boolstack User Guide
 
-Hi, I'm the developer behind Boolstack. This guide shows you how to take the little apps your AI assistant builds for you (a habit tracker, a budget calculator, a flashcard deck) and keep them all in one place.
+This guide shows how to take the small apps an AI assistant builds (a habit tracker, a budget calculator, a flashcard deck) and keep them all in one place.
 
-You don't need to know how to code. If you can download a file and click a button, you can do this.
+**Prerequisites:** a Chromium-based browser (such as Chrome or Edge). No coding is needed. If you can download a file and click a button, you can follow this guide.
 
-## Why bother with Boolstack?
+## What Boolstack does
 
-Fair question. Some AI tools, like Claude, ChatGPT and others, already let you save "artifacts" or apps inside their own product. They're great, and if you only ever use one assistant you may be happy there.
+Some AI tools, like Claude, ChatGPT and others, already let you save "artifacts" or apps inside their own product. That works well when you only use one assistant.
 
-Boolstack is for when you don't:
+Boolstack is for when you use several:
 
 - **One roof for every agent.** Built something in Claude, something else in ChatGPT, another in Gemini? They all end up in the same dashboard.
 - **You own the files.** Each app is a plain HTML file. No account, no subscription, no vendor holding your tools.
@@ -49,7 +49,7 @@ Boolstack runs your app in a safe, sandboxed window. For everything to work, you
 
 `localStorage` is a small notebook your app keeps inside the browser. Boolstack gives every app its own private page in that notebook, so two apps can never read each other's data, and it copies each page to your backup folder.
 
-Other storage options, such as cookies, `sessionStorage` or `IndexedDB`, are **not** backed up. If your agent uses them, your data can vanish. That's why we tell the agent to use `localStorage` and nothing else.
+Other storage options, such as cookies, `sessionStorage` or `IndexedDB`, are **not** backed up. If your agent uses them, your data can vanish. The prompt below tells the agent to use `localStorage` and nothing else.
 
 A few limits to know about:
 
@@ -139,5 +139,3 @@ The file must end in `.html`. Check that your text editor didn't save it as `.ht
 
 **My data disappeared.**
 Check that you chose a backup folder in setup, and that you haven't cleared your browser's site data.
-
-Happy building!

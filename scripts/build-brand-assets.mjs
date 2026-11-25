@@ -9,8 +9,22 @@ const P = (...p) => path.join(root, ...p);
 const BG = '#0F0F0D', FG = '#FFFFFF';
 const ALT = 'Boolstack - local-first admin panel for your personal HTML apps';
 
-const require = createRequire('C:/Users/Elcraigo/AppData/Roaming/npm/node_modules/@playwright/cli/package.json');
-const { chromium } = require('playwright-core');
+// Locate a globally installed @playwright/cli via PLAYWRIGHT_CLI_PATH (its install dir or
+// package.json), e.g. "$(npm root -g)/@playwright/cli". Falls back to normal resolution.
+function loadChromium() {
+  const candidates = [];
+  const env = process.env.PLAYWRIGHT_CLI_PATH;
+  if (env) candidates.push(env.endsWith('package.json') ? env : path.join(env, 'package.json'));
+  candidates.push(path.join(root, 'package.json'));
+  for (const c of candidates) {
+    try { return createRequire(c)('playwright-core').chromium; } catch {}
+  }
+  throw new Error(
+    'Could not load playwright-core. Install @playwright/cli globally (npm i -g @playwright/cli) ' +
+    'and set PLAYWRIGHT_CLI_PATH to its install directory or package.json.'
+  );
+}
+const chromium = loadChromium();
 
 const lines = readFileSync(P('app/boolstack-logo-plate.svg'), 'utf8').split(/\r?\n/);
 const paths = lines.filter((l) => l.startsWith('<path'));
