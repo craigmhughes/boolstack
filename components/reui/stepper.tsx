@@ -7,7 +7,6 @@ import {
   isValidElement,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react"
@@ -30,12 +29,6 @@ interface StepperContextValue {
   setActiveStep: (step: number) => void
   stepsCount: number
   orientation: StepperOrientation
-  registerTrigger: (node: HTMLButtonElement | null) => void
-  triggerNodes: HTMLButtonElement[]
-  focusNext: (currentIdx: number) => void
-  focusPrev: (currentIdx: number) => void
-  focusFirst: () => void
-  focusLast: () => void
   indicators: StepIndicators
 }
 
@@ -82,20 +75,6 @@ function Stepper({
   ...props
 }: StepperProps) {
   const [activeStep, setActiveStep] = useState(defaultValue)
-  const [triggerNodes, setTriggerNodes] = useState<HTMLButtonElement[]>([])
-
-  // Register/unregister triggers
-  const registerTrigger = useCallback((node: HTMLButtonElement | null) => {
-    setTriggerNodes((prev) => {
-      if (node && !prev.includes(node)) {
-        return [...prev, node]
-      } else if (!node && prev.includes(node!)) {
-        return prev.filter((n) => n !== node)
-      } else {
-        return prev
-      }
-    })
-  }, [])
 
   const handleSetActiveStep = useCallback(
     (step: number) => {
@@ -109,17 +88,6 @@ function Stepper({
 
   const currentStep = value ?? activeStep
 
-  // Keyboard navigation logic
-  const focusTrigger = (idx: number) => {
-    if (triggerNodes[idx]) triggerNodes[idx].focus()
-  }
-  const focusNext = (currentIdx: number) =>
-    focusTrigger((currentIdx + 1) % triggerNodes.length)
-  const focusPrev = (currentIdx: number) =>
-    focusTrigger((currentIdx - 1 + triggerNodes.length) % triggerNodes.length)
-  const focusFirst = () => focusTrigger(0)
-  const focusLast = () => focusTrigger(triggerNodes.length - 1)
-
   // Context value
   const contextValue = useMemo<StepperContextValue>(
     () => ({
@@ -131,29 +99,14 @@ function Stepper({
           (child.type as { displayName?: string }).displayName === "StepperItem"
       ).length,
       orientation,
-      registerTrigger,
-      focusNext,
-      focusPrev,
-      focusFirst,
-      focusLast,
-      triggerNodes,
       indicators,
     }),
-    [
-      currentStep,
-      handleSetActiveStep,
-      children,
-      orientation,
-      registerTrigger,
-      triggerNodes,
-    ]
+    [currentStep, handleSetActiveStep, children, orientation, indicators]
   )
 
   return (
     <StepperContext.Provider value={contextValue}>
       <div
-        role="tablist"
-        aria-orientation={orientation}
         data-slot="stepper"
         className={cn("w-full", className)}
         data-orientation={orientation}
@@ -165,7 +118,7 @@ function Stepper({
   )
 }
 
-interface StepperItemProps extends React.HTMLAttributes<HTMLDivElement> {
+interface StepperItemProps extends React.HTMLAttributes<HTMLLIElement> {
   step: number
   completed?: boolean
   disabled?: boolean
@@ -196,7 +149,7 @@ function StepperItem({
     <StepItemContext.Provider
       value={{ step, state, isDisabled: disabled, isLoading }}
     >
-      <div
+      <li
         data-slot="stepper-item"
         className={cn(
           "group/step flex items-center justify-center not-last:flex-1 group-data-[orientation=horizontal]/stepper-nav:flex-row group-data-[orientation=vertical]/stepper-nav:flex-col",
@@ -207,7 +160,7 @@ function StepperItem({
         {...props}
       >
         {children}
-      </div>
+      </li>
     </StepItemContext.Provider>
   )
 }
@@ -220,95 +173,46 @@ function StepperTrigger({
   asChild = false,
   className,
   children,
-  tabIndex,
   ...props
 }: StepperTriggerProps) {
-  const { state, isLoading } = useStepItem()
-  const stepperCtx = useStepper()
-  const {
-    setActiveStep,
-    activeStep,
-    registerTrigger,
-    triggerNodes,
-    focusNext,
-    focusPrev,
-    focusFirst,
-    focusLast,
-  } = stepperCtx
-  const { step, isDisabled } = useStepItem()
-  const isSelected = activeStep === step
-  const id = `stepper-tab-${step}`
-  const panelId = `stepper-panel-${step}`
+  const { state, isLoading, step, isDisabled } = useStepItem()
+  const { setActiveStep } = useStepper()
 
-  // Register this trigger for keyboard navigation. The mounted node is kept in
-  // state (set via callback ref) rather than read from a ref during render.
-  const [btnNode, setBtnNode] = useState<HTMLButtonElement | null>(null)
-  useEffect(() => {
-    if (btnNode) {
-      registerTrigger(btnNode)
-    }
-  }, [btnNode, registerTrigger])
-
-  // Find our index among triggers for navigation
-  const myIdx = useMemo(
-    () => triggerNodes.findIndex((n: HTMLButtonElement) => n === btnNode),
-    [triggerNodes, btnNode]
-  )
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
-    switch (e.key) {
-      case "ArrowRight":
-      case "ArrowDown":
-        e.preventDefault()
-        if (myIdx !== -1 && focusNext) focusNext(myIdx)
-        break
-      case "ArrowLeft":
-      case "ArrowUp":
-        e.preventDefault()
-        if (myIdx !== -1 && focusPrev) focusPrev(myIdx)
-        break
-      case "Home":
-        e.preventDefault()
-        if (focusFirst) focusFirst()
-        break
-      case "End":
-        e.preventDefault()
-        if (focusLast) focusLast()
-        break
-      case "Enter":
-      case " ":
-        e.preventDefault()
-        setActiveStep(step)
-        break
-    }
-  }
-
-  // `asChild` composes onto the consumer's element via Slot, so the trigger
-  // keeps its ref, tab semantics, and keyboard handlers either way.
+  // `asChild` composes onto the consumer's element via Slot. Native button
+  // click already covers Enter/Space, so no custom key handler is needed.
   const Comp = asChild ? Slot.Root : "button"
+  const stateText = isLoading
+    ? "loading"
+    : state === "completed"
+      ? "completed"
+      : state === "active"
+        ? "current"
+        : "not started"
 
   return (
     <Comp
-      ref={setBtnNode}
-      role="tab"
-      id={id}
-      aria-selected={isSelected}
-      aria-controls={panelId}
-      tabIndex={typeof tabIndex === "number" ? tabIndex : isSelected ? 0 : -1}
+      type={asChild ? undefined : "button"}
+      aria-current={state === "active" ? "step" : undefined}
       data-slot="stepper-trigger"
       data-state={state}
       data-loading={isLoading}
       className={cn(
-        "focus-visible:border-ring focus-visible:ring-ring/50 inline-flex cursor-pointer items-center outline-none focus-visible:z-10 focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-60",
+        "focus-visible:border-ring focus-visible:ring-ring inline-flex min-h-6 min-w-6 cursor-pointer items-center outline-none focus-visible:z-10 focus-visible:ring-3 disabled:pointer-events-none disabled:opacity-60",
         "gap-2.5 rounded-full",
         className
       )}
       onClick={() => setActiveStep(step)}
-      onKeyDown={handleKeyDown}
       disabled={isDisabled}
       {...props}
     >
-      {children}
+      {asChild ? (
+        children
+      ) : (
+        <>
+          {children}
+          <span className="sr-only">, {stateText}</span>
+        </>
+      )}
     </Comp>
   )
 }
@@ -330,7 +234,7 @@ function StepperIndicator({
         className
       )}
     >
-      <div className="absolute">
+      <div className="absolute" aria-hidden="true">
         {indicators &&
         ((isLoading && indicators.loading) ||
           (state === "completed" && indicators.completed) ||
@@ -392,7 +296,11 @@ function StepperDescription({
   )
 }
 
-function StepperNav({ children, className }: React.ComponentProps<"nav">) {
+function StepperNav({
+  children,
+  className,
+  "aria-label": ariaLabel,
+}: React.ComponentProps<"nav">) {
   const { activeStep, orientation } = useStepper()
 
   return (
@@ -400,12 +308,18 @@ function StepperNav({ children, className }: React.ComponentProps<"nav">) {
       data-slot="stepper-nav"
       data-state={activeStep}
       data-orientation={orientation}
-      className={cn(
-        "group/stepper-nav inline-flex data-[orientation=horizontal]:w-full data-[orientation=horizontal]:flex-row data-[orientation=vertical]:flex-col",
-        className
-      )}
+      aria-label={ariaLabel ?? "Progress"}
+      className="group/stepper-nav data-[orientation=horizontal]:w-full"
     >
-      {children}
+      <ol
+        className={cn(
+          "m-0 flex list-none p-0 data-[orientation=horizontal]:w-full data-[orientation=horizontal]:flex-row data-[orientation=vertical]:flex-col",
+          className
+        )}
+        data-orientation={orientation}
+      >
+        {children}
+      </ol>
     </nav>
   )
 }
